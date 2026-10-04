@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+set -euo pipefail
+project_directory="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$project_directory"
+export PATH="$HOME/.cargo/bin:$PATH"
+resource_compiler="$(command -v llvm-rc || true)"
+if [[ -z "$resource_compiler" && -x "$project_directory/.build-tools/llvm/usr/lib/llvm-21/bin/llvm-rc" ]]; then
+  resource_compiler="$project_directory/.build-tools/llvm/usr/lib/llvm-21/bin/llvm-rc"
+fi
+if [[ -z "$resource_compiler" ]]; then
+  printf 'Install LLVM resource tools in WSL (llvm-21), then retry.\n' >&2
+  exit 1
+fi
+export RC_x86_64_pc_windows_msvc="$resource_compiler"
+npm ci --no-audit --no-fund
+npm run build
+cargo xwin build --manifest-path backend/Cargo.toml --target x86_64-pc-windows-msvc --release --features desktop
+output_directory=/mnt/d/devw/my/tools/simpleVoiceover
+mkdir -p "$output_directory"
+cp backend/target/x86_64-pc-windows-msvc/release/simpleVoiceover.exe "$output_directory/simpleVoiceover.exe"
+printf 'Built: %s/simpleVoiceover.exe\nRun: svoice start\n' "$output_directory"

@@ -1,0 +1,121 @@
+import { AudioLines, LockKeyhole, Mic, UnlockKeyhole, Video, WandSparkles } from 'lucide-react'
+import type { Track } from '../types'
+import TrackMeter from './TrackMeter'
+
+interface Props {
+  track: Track
+  index: number
+  recording: boolean
+  onSelectTrack: (id: string) => void
+  onUpdateTrack: (id: string, patch: Partial<Track>) => void
+  getLevel: (id: string) => number
+}
+export default function TrackHeader({
+  track,
+  index,
+  recording,
+  onSelectTrack,
+  onUpdateTrack,
+  getLevel,
+}: Props) {
+  return (
+    <div className="tl-track-header" onClick={() => onSelectTrack(track.id)}>
+      <div className="tl-track-heading">
+        <span className="tl-track-number">{(index + 1).toString().padStart(2, '0')}</span>
+        {track.kind === 'video' ? (
+          <Video size={13} />
+        ) : track.kind === 'voice' ? (
+          <Mic size={13} />
+        ) : (
+          <AudioLines size={13} />
+        )}
+        <button
+          className="tl-track-name"
+          onClick={() => onSelectTrack(track.id)}
+          title={track.name}
+        >
+          {track.name}
+        </button>
+        <span className="tl-track-db">
+          {track.volume > 0 ? '+' : ''}
+          {track.volume.toFixed(1)}
+        </span>
+      </div>
+      <div className="tl-track-bottom">
+        <div className="tl-circles">
+          <button
+            className={`tl-circle ${track.mute ? 'is-muted' : ''}`}
+            title="Заглушить дорожку"
+            aria-label={`Заглушить: ${track.name}`}
+            aria-pressed={track.mute}
+            onClick={() => onUpdateTrack(track.id, { mute: !track.mute })}
+          >
+            M
+          </button>
+          <button
+            className={`tl-circle ${track.solo ? 'is-solo' : ''}`}
+            title="Соло дорожки"
+            aria-label={`Соло: ${track.name}`}
+            aria-pressed={track.solo}
+            onClick={() => onUpdateTrack(track.id, { solo: !track.solo })}
+          >
+            S
+          </button>
+          <button
+            className={`tl-circle ${track.armed ? 'is-armed' : ''}`}
+            title={
+              track.kind === 'video'
+                ? 'Для записи выберите аудиодорожку'
+                : 'Записывать микрофон на эту дорожку'
+            }
+            aria-label={`Подготовить к записи: ${track.name}`}
+            aria-pressed={track.armed}
+            disabled={track.kind === 'video' || recording}
+            onClick={() => onUpdateTrack(track.id, { armed: !track.armed })}
+          >
+            R
+          </button>
+          <button
+            className={`tl-circle ${track.locked ? 'is-active' : ''}`}
+            title={track.locked ? 'Разблокировать монтаж дорожки' : 'Заблокировать монтаж дорожки'}
+            aria-label={`Блокировка: ${track.name}`}
+            aria-pressed={track.locked}
+            onClick={() => onUpdateTrack(track.id, { locked: !track.locked })}
+          >
+            {track.locked ? <LockKeyhole size={9} /> : <UnlockKeyhole size={9} />}
+          </button>
+          <button
+            className={`tl-circle ${!track.fxBypass ? 'is-fx' : ''}`}
+            title={track.fxBypass ? 'Включить эффекты' : 'Обойти эффекты'}
+            aria-label={`Эффекты: ${track.name}`}
+            aria-pressed={!track.fxBypass}
+            onClick={() => onUpdateTrack(track.id, { fxBypass: !track.fxBypass })}
+          >
+            <WandSparkles size={9} />
+          </button>
+          {Array.from({ length: 7 }, (_, slot) => (
+            <button
+              key={slot}
+              className="tl-circle tl-reserved"
+              disabled
+              title="Резерв для будущих инструментов"
+              aria-label="Резерв для будущих инструментов"
+            />
+          ))}
+        </div>
+        <div className="tl-track-level">
+          <TrackMeter id={track.id} getLevel={getLevel} />
+          <span>
+            {track.locked
+              ? 'ЗАБЛОКИРОВАНО'
+              : track.armed
+                ? '● МИКРОФОН'
+                : track.kind === 'video'
+                  ? 'АУДИО ВИДЕО'
+                  : 'АУДИОДОРОЖКА'}
+          </span>
+        </div>
+      </div>
+    </div>
+  )
+}

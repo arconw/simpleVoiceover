@@ -1,0 +1,32 @@
+{
+  "name": "simple-voiceover",
+  "private": true,
+  "version": "0.2.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1 --port 5175 --strictPort",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview --host 127.0.0.1 --port 4173 --strictPort",
+    "test": "npm run test:unit && npm run test:rust",
+    "test:unit": "vitest run",
+    "test:rust": "cargo test --manifest-path backend/Cargo.toml",
+    "format": "prettier --write src public tests *.json *.ts index.html README.md",
+    "format:check": "prettier --check src public tests *.json *.ts index.html README.md"
+  },
+  "dependencies": {
+    "@fontsource/golos-text": "^5.3.0",
+    "@tauri-apps/api": "^2.12.1",
+    "lucide-react": "^0.468.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "^4.3.4",
+    "prettier": "^3.9.9",
+    "typescript": "~5.7.2",
+    "vite": "^6.1.0",
+    "vitest": "^3.2.7"
+  }
+}
