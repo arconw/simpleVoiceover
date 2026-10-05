@@ -8,6 +8,8 @@ backend/target/
 backend/gen/
 .build-tools/
 .ctx/
+!AGENTS.md
+!CLAUDE.md
 .env
 .env.*
 *.pem

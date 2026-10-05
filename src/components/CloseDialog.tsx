@@ -1,8 +1,9 @@
+import { t } from '../i18n'
 import type { StudioController } from '../useStudio'
 
 type Props = Pick<
   StudioController,
-  'confirmMode' | 'confirmSave' | 'confirmDiscard' | 'cancelConfirm' | 'busy'
+  'confirmMode' | 'confirmSave' | 'confirmDiscard' | 'cancelConfirm' | 'operationPending'
 >
 
 export default function CloseDialog({
@@ -10,7 +11,7 @@ export default function CloseDialog({
   confirmSave,
   confirmDiscard,
   cancelConfirm,
-  busy,
+  operationPending,
 }: Props) {
   return (
     <div className="modal-backdrop">
@@ -18,24 +19,26 @@ export default function CloseDialog({
         className="help-modal"
         role="dialog"
         aria-modal="true"
-        aria-label="Несохранённые изменения"
+        aria-label={t('close.dialog')}
       >
-        <h2>Сохранить изменения?</h2>
+        <h2>{t('close.title')}</h2>
         <p className="hint muted">
-          В проекте есть несохранённые изменения.{' '}
-          {confirmMode === 'close'
-            ? 'После закрытия приложения аудиодвижок остановится.'
-            : 'Перед открытием другого проекта можно сохранить текущий.'}
+          {t('close.unsaved')}{' '}
+          {confirmMode === 'close' ? t('close.stopEngine') : t('close.openAnother')}
         </p>
         <div className="dialog-actions">
-          <button className="button secondary" disabled={!!busy} onClick={cancelConfirm}>
-            Отмена
+          <button className="button secondary" disabled={operationPending} onClick={cancelConfirm}>
+            {t('common.cancel')}{' '}
           </button>
-          <button className="button secondary" disabled={!!busy} onClick={confirmDiscard}>
-            {confirmMode === 'close' ? 'Закрыть без сохранения' : 'Открыть без сохранения'}
+          <button className="button secondary" disabled={operationPending} onClick={confirmDiscard}>
+            {confirmMode === 'close' ? t('close.discard') : t('close.openDiscard')}
           </button>
-          <button className="button accent" disabled={!!busy} onClick={() => void confirmSave()}>
-            Сохранить
+          <button
+            className="button accent"
+            disabled={operationPending}
+            onClick={() => void confirmSave()}
+          >
+            {t('project.save')}{' '}
           </button>
         </div>
       </section>

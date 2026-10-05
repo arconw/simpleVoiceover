@@ -1,5 +1,16 @@
+import { localizedName, t } from '../i18n'
 import { useEffect, useRef, useState } from 'react'
-import { AudioLines, Download, FolderOpen, Keyboard, Menu, Plus, Save, X } from 'lucide-react'
+import {
+  AudioLines,
+  Download,
+  FolderOpen,
+  Keyboard,
+  Menu,
+  Plus,
+  Save,
+  Settings,
+  X,
+} from 'lucide-react'
 import type { StudioController } from '../useStudio'
 
 type Props = Pick<
@@ -14,6 +25,7 @@ type Props = Pick<
   | 'openNative'
   | 'snapshot'
   | 'setHelp'
+  | 'setSettings'
   | 'chooseWorkingDirectory'
 >
 
@@ -28,6 +40,7 @@ export default function StudioHeader({
   openNative,
   snapshot,
   setHelp,
+  setSettings,
   chooseWorkingDirectory,
 }: Props) {
   const [open, setOpen] = useState(false)
@@ -56,7 +69,7 @@ export default function StudioHeader({
     <div className="studio-menu" ref={ref}>
       <button
         className="menu-toggle"
-        aria-label="Меню проекта"
+        aria-label={t('menu.project')}
         aria-expanded={open}
         aria-controls="project-menu"
         onClick={() => setOpen(!open)}
@@ -65,35 +78,36 @@ export default function StudioHeader({
         {snapshot?.config.dirty && <span className="unsaved-dot" />}
       </button>
       {open && (
-        <nav id="project-menu" className="project-menu" aria-label="Действия проекта">
+        <nav id="project-menu" className="project-menu" aria-label={t('menu.actions')}>
           <div className="menu-brand">
             <AudioLines size={21} />
             <strong>simpleVoiceover</strong>
           </div>
           <p className="menu-state">
-            {snapshot?.config.dirty ? 'Есть несохранённые изменения' : 'Проект сохранён'}
+            {snapshot?.config.dirty ? t('project.unsaved') : t('project.saved')}
           </p>
           <button disabled={disabled} onClick={() => run(importNative)}>
             <Plus size={16} />
-            Добавить медиа
+            {t('media.add')}{' '}
           </button>
           <button disabled={disabled} onClick={() => run(openNative)}>
             <FolderOpen size={16} />
-            Открыть проект
+            {t('project.open')}{' '}
           </button>
           <button disabled={disabled} onClick={() => run(() => saveProject())}>
             <Save size={16} />
-            Сохранить<kbd>Ctrl S</kbd>
+            {t('project.save')}
+            <kbd>Ctrl S</kbd>
           </button>
           <button disabled={disabled} onClick={() => run(() => saveProject(true))}>
             <Save size={16} />
-            Сохранить как…
+            {t('project.saveAs')}{' '}
           </button>
           <button disabled={disabled} onClick={() => run(chooseWorkingDirectory)}>
             <FolderOpen size={16} />
-            Рабочий каталог
+            {t('project.workingDirectory')}{' '}
           </button>
-          <span className="menu-section">ЭКСПОРТ МИКСА</span>
+          <span className="menu-section">{t('export.mix')}</span>
           <div className="menu-formats">
             <button disabled={disabled || !duration} onClick={() => run(() => exportAudio())}>
               <Download size={14} />
@@ -107,7 +121,9 @@ export default function StudioHeader({
               MP3
             </button>
           </div>
-          <span className="menu-section">ДОРОЖКА · {selectedTrack.name}</span>
+          <span className="menu-section">
+            {t('export.trackPrefix')} {localizedName(selectedTrack.name)}
+          </span>
           <div className="menu-formats">
             <button
               disabled={disabled || !selectedTrack.clips.length}
@@ -122,9 +138,13 @@ export default function StudioHeader({
               MP3
             </button>
           </div>
+          <button onClick={() => run(() => setSettings(true))}>
+            <Settings size={16} />
+            {t('settings.title')}
+          </button>
           <button onClick={() => run(() => setHelp(true))}>
             <Keyboard size={16} />
-            Справка и клавиши
+            {t('help.menu')}{' '}
           </button>
         </nav>
       )}

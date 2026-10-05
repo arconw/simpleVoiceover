@@ -1,3 +1,4 @@
+import { localizedName, t } from '../i18n'
 import { Headphones, Mic, Volume2 } from 'lucide-react'
 import type { StudioController } from '../useStudio'
 import { Slider } from '../EffectsPanel'
@@ -34,7 +35,7 @@ export default function MixerPanel({
   return (
     <div className="mixer-panel">
       <div className="panel-heading">
-        <span className="eyebrow">ЗВУК ДОРОЖЕК</span>
+        <span className="eyebrow">{t('mixer.heading')}</span>
         <Volume2 size={14} />
       </div>
       {tracks.map((track) => (
@@ -45,10 +46,10 @@ export default function MixerPanel({
         >
           <div className="mixer-title">
             <i style={{ background: track.color }} />
-            <strong>{track.name}</strong>
+            <strong>{localizedName(track.name)}</strong>
             <button
               className={track.mute ? 'active-mute' : ''}
-              aria-label={`Мут ${track.name}`}
+              aria-label={t('mixer.muteLabel', { value0: localizedName(track.name) })}
               aria-pressed={track.mute}
               onClick={() => updateTrack(track.id, { mute: !track.mute })}
             >
@@ -56,7 +57,7 @@ export default function MixerPanel({
             </button>
             <button
               className={track.solo ? 'active-solo' : ''}
-              aria-label={`Соло ${track.name}`}
+              aria-label={t('mixer.soloLabel', { value0: localizedName(track.name) })}
               aria-pressed={track.solo}
               onClick={() => updateTrack(track.id, { solo: !track.solo })}
             >
@@ -64,16 +65,18 @@ export default function MixerPanel({
             </button>
           </div>
           <Slider
-            label={`Громкость · ${track.name}`}
+            label={t('mixer.volumeLabel', { value0: localizedName(track.name) })}
+            help="volume"
             value={track.volume}
             min={-60}
             max={12}
             step={0.5}
-            unit="дБ"
+            unit={t('units.db')}
             onChange={(v) => updateTrack(track.id, { volume: v })}
           />
           <Slider
-            label={`Панорама · ${track.name}`}
+            label={t('mixer.panLabel', { value0: localizedName(track.name) })}
+            help="pan"
             value={track.pan}
             min={-1}
             max={1}
@@ -86,7 +89,7 @@ export default function MixerPanel({
             <span>R</span>
           </div>
           <div className="track-exports">
-            <span>Экспорт дорожки</span>
+            <span>{t('mixer.exportTrack')}</span>
             <button
               disabled={!track.clips.length || recording || !!busy}
               onClick={() => void exportAudio(track.id)}
@@ -104,20 +107,20 @@ export default function MixerPanel({
       ))}
       <div className="mic-settings">
         <h3>
-          <Mic size={15} /> Вход микрофона
+          <Mic size={15} /> {t('mixer.input')}{' '}
         </h3>
         <select
-          aria-label="Устройство микрофона"
+          aria-label={t('mixer.device')}
           value={deviceId}
           disabled={recording}
           onChange={(e) => setDeviceId(e.target.value)}
         >
-          <option value="">Микрофон по умолчанию</option>
+          <option value="">{t('mixer.defaultDevice')}</option>
           {devices
             .filter((d) => d.deviceId !== 'default')
             .map((d) => (
               <option key={d.deviceId} value={d.deviceId}>
-                {d.label || 'Микрофон'}
+                {d.label || t('mixer.microphone')}
               </option>
             ))}
         </select>
@@ -129,12 +132,10 @@ export default function MixerPanel({
           }}
         >
           <Headphones size={16} />
-          Слышать свой голос<span>{monitor ? 'Вкл' : 'Выкл'}</span>
+          {t('mixer.monitor')}
+          <span>{monitor ? t('common.on') : t('common.off')}</span>
         </button>
-        <p className="hint muted">
-          Для мониторинга используй наушники, чтобы звук не возвращался в микрофон. Список устройств
-          появится после первого разрешения на запись.
-        </p>
+        <p className="hint muted">{t('mixer.monitorHint')} </p>
       </div>
     </div>
   )

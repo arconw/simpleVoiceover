@@ -1,3 +1,4 @@
+import { t } from '../i18n'
 import { useEffect, useRef, useState } from 'react'
 import { invoke } from '@tauri-apps/api/core'
 import { listen } from '@tauri-apps/api/event'
@@ -30,11 +31,7 @@ export function useDesktopLifecycle(options: Options) {
     const state = current.current
     if (state.busy || state.recording) {
       state.showError(
-        new Error(
-          state.recording
-            ? 'Заверши запись перед закрытием или открытием проекта.'
-            : 'Дождись завершения текущей операции.',
-        ),
+        new Error(state.recording ? t('error.recordingBeforeClose') : t('error.waitBeforeClose')),
       )
       return
     }
@@ -59,5 +56,6 @@ export function useDesktopLifecycle(options: Options) {
     confirmDiscard,
     cancelConfirm: () => setConfirmMode(null),
     requestOpen: () => request('open'),
+    requestClose: () => request('close'),
   }
 }

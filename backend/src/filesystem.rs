@@ -1,10 +1,10 @@
 use anyhow::Result;
 use serde::Serialize;
-use std::{fs::File, path::Path};
+use std::{fs::File, io::Write, path::Path};
 pub fn atomic_json(path: &Path, value: &impl Serialize) -> Result<()> {
     let temporary = path.with_extension("pending");
     let mut file = File::create(&temporary)?;
-    serde_json::to_writer(&mut file, value)?;
+    file.write_all(&serde_json::to_vec(value)?)?;
     file.sync_all()?;
     replace_file(&temporary, path)?;
     Ok(())

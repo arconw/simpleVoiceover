@@ -42,29 +42,32 @@ impl AudioSession {
         }
     }
     pub fn begin_record(&mut self, store: &mut Store, position: f64) -> Result<()> {
-        ensure!(self.recording.is_none(), "Запись уже идёт");
+        ensure!(
+            self.recording.is_none(),
+            crate::i18n::message("error.alreadyRecording")
+        );
         let track = store
             .project
             .tracks
             .iter()
             .find(|t| t.armed && t.kind != "video")
-            .context("Включи R на звуковой дорожке")?
+            .context(crate::i18n::message("error.armTrack"))?
             .clone();
         self.mixer = None;
-        store.materialize()?;
+        store.begin_changes()?;
         let asset_id = id();
         let file = BufWriter::with_capacity(256 * 1024, File::create(store.pcm(&asset_id))?);
         self.recording = Some(Recording {
             file,
             asset_id,
-            track_id: track.id,
+            track_id: track.id.clone(),
             start: position,
             peaks: Peaks::new(),
         });
         self.input.clear();
         self.input_processor = Some(Processor::new(&track.effects));
         self.frame = (position * SAMPLE_RATE as f64).round() as u64;
-        self.mixer = Some(Mixer::new(store)?);
+        self.mixer = Some(Mixer::with_selection(store, None, Some(&track.id))?);
         self.playing = true;
         Ok(())
     }
@@ -100,16 +103,16 @@ impl AudioSession {
         }
         source.flush()?;
         source.get_ref().sync_all()?;
-        let name = format!(
-            "Войс {}.wav",
-            store
-                .project
-                .assets
-                .iter()
-                .filter(|a| a.name.starts_with("Войс "))
-                .count()
-                + 1
-        );
+        let template = crate::i18n::text("en", "recording.filename");
+        let prefix = template.split("{number}").next().unwrap_or_default();
+        let number = store
+            .project
+            .assets
+            .iter()
+            .filter(|a| a.name.starts_with(prefix))
+            .count()
+            + 1;
+        let name = template.replace("{number}", &number.to_string());
         let asset = Asset {
             id: recording.asset_id.clone(),
             name: name.clone(),
@@ -126,7 +129,7 @@ impl AudioSession {
             .tracks
             .iter_mut()
             .find(|t| t.id == recording.track_id)
-            .context("Нет дорожки записи")?
+            .context(crate::i18n::message("error.recordingTrackMissing"))?
             .clips
             .push(Clip {
                 id: id(),
@@ -143,13 +146,18 @@ impl AudioSession {
         if data == [2] {
             return Ok(json!({"type":"input-drained"}));
         }
-        let (&kind, bytes) = data.split_first().context("Пустой пакет")?;
+        let (&kind, bytes) = data
+            .split_first()
+            .context(crate::i18n::message("error.emptyPacket"))?;
         if kind == 1 {
             ensure!(
                 bytes.len() % 4 == 0 && bytes.len() <= 65536,
-                "Некорректный пакет микрофона"
+                crate::i18n::message("error.microphonePacket")
             );
-            let recording = self.recording.as_mut().context("Запись не начата")?;
+            let recording = self
+                .recording
+                .as_mut()
+                .context(crate::i18n::message("error.recordingNotStarted"))?;
             let mut peak: f32 = 0.;
             for sample in bytes.chunks_exact(4) {
                 let value = finite(f32::from_le_bytes(sample.try_into().unwrap()));
@@ -166,24 +174,28 @@ impl AudioSession {
             }
             ensure!(
                 recording.peaks.frames <= MAX_UPLOAD / 8,
-                "Запись достигла лимита 100 ГБ"
+                crate::i18n::message("error.recordingLimit")
             );
             Ok(json!({"type":"input","level":peak}))
         } else {
-            bail!("Неизвестный бинарный пакет")
+            bail!(crate::i18n::message("error.binaryPacket"))
         }
     }
     pub fn pull(&mut self, store: &Store) -> Result<(Vec<u8>, Value)> {
         let count = 1024;
-        ensure!(self.playing, "Воспроизведение остановлено");
+        ensure!(self.playing, crate::i18n::message("error.playbackStopped"));
         let project = &store.project;
-        let (mut samples, mut meters) = self.mixer.as_mut().context("Нет проигрывателя")?.block(
-            project,
-            self.frame,
-            count,
-            None,
-            self.recording.as_ref().map(|r| r.track_id.as_str()),
-        )?;
+        let (mut samples, mut meters) = self
+            .mixer
+            .as_mut()
+            .context(crate::i18n::message("error.playerMissing"))?
+            .block(
+                project,
+                self.frame,
+                count,
+                None,
+                self.recording.as_ref().map(|r| r.track_id.as_str()),
+            )?;
         if let Some(recording) = &self.recording
             && self.monitor
         {

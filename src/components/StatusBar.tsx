@@ -1,3 +1,4 @@
+import { t } from '../i18n'
 import type { StudioController } from '../useStudio'
 
 type Props = Pick<
@@ -18,17 +19,18 @@ export default function StatusBar({
     <footer className="statusbar">
       <span>
         <span className="small-dot" />
-        {busy || `${tracks.length} дорожки · ${assets.length} файлов`}
+        {busy || t('status.summary', { value0: tracks.length, value1: assets.length })}
       </span>
-      <span>WAV / MP3 · 48 кГц · Стерео</span>
+      <span>{t('status.format')}</span>
       <button onClick={undo} disabled={!snapshot?.canUndo || recording || !!busy}>
-        Отменить <kbd>Ctrl Z</kbd>
+        {t('history.undo')} <kbd>Ctrl Z</kbd>
       </button>
       <button onClick={redo} disabled={!snapshot?.canRedo || recording || !!busy}>
-        Вернуть <kbd>Ctrl Shift Z</kbd>
+        {t('history.redo')} <kbd>Ctrl Shift Z</kbd>
       </button>
       <span className="status-hint">
-        Space — слушать<span>R — записывать</span>
+        {t('status.playShortcut')}
+        <span>{t('status.recordShortcut')}</span>
       </span>
     </footer>
   )

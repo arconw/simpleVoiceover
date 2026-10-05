@@ -6,20 +6,21 @@ use crate::{
 };
 use anyhow::{Context, Result, ensure};
 use serde_json::{Value, json};
-use std::{
-    fs::{self, File},
-    path::PathBuf,
-};
+use std::{fs, path::PathBuf};
 
 pub fn snapshot(store: &Store) -> Value {
     json!({"project":store.project,"config":store.config,"duration":store.project.duration(),"canUndo":!store.history.is_empty(),"canRedo":!store.redo.is_empty()})
 }
 pub(crate) fn text<'a>(value: &'a Value, key: &str) -> Result<&'a str> {
-    value[key].as_str().with_context(|| format!("Нет {key}"))
+    value[key].as_str().with_context(|| {
+        crate::i18n::formatted_message("error.fieldMissing", &[("key", key.into())])
+    })
 }
 pub(crate) fn number(value: &Value, key: &str) -> Result<f64> {
-    let n = value[key].as_f64().with_context(|| format!("Нет {key}"))?;
-    ensure!(n.is_finite(), "Некорректное число");
+    let n = value[key].as_f64().with_context(|| {
+        crate::i18n::formatted_message("error.fieldMissing", &[("key", key.into())])
+    })?;
+    ensure!(n.is_finite(), crate::i18n::message("error.number"));
     Ok(n)
 }
 
@@ -32,15 +33,12 @@ pub fn import_source(
     position: f64,
 ) -> Result<()> {
     let size = fs::metadata(&source)?.len();
-    ensure!(size <= MAX_UPLOAD, "Лимит файла — 100 ГБ");
-    store.materialize()?;
+    ensure!(size <= MAX_UPLOAD, crate::i18n::message("error.fileLimit"));
+    store.begin_changes()?;
     let asset_id = id();
     let owned = store.source(&asset_id);
-    let mut input = File::open(&source)?;
-    let mut output = File::create(&owned)?;
-    std::io::copy(&mut input, &mut output)?;
-    output.sync_all()?;
-    let asset = media::decode(
+    let decoded = media::import(
+        &source,
         &owned,
         &store.pcm(&asset_id),
         Asset {
@@ -54,7 +52,16 @@ pub fn import_source(
             waveform: vec![],
             peak_frames: 256,
         },
-    )?;
+        &store.progress,
+    );
+    let asset = match decoded {
+        Ok(asset) => asset,
+        Err(error) => {
+            let _ = fs::remove_file(&owned);
+            let _ = fs::remove_file(store.pcm(&asset_id));
+            return Err(error);
+        }
+    };
     let mut project = store.project.clone();
     let index = project
         .tracks
@@ -71,9 +78,9 @@ pub fn import_source(
             project.tracks.push(Track::new(
                 &kind,
                 if kind == "video" {
-                    "Звук видео"
+                    "track.video"
                 } else {
-                    "Аудио"
+                    "track.audio"
                 },
             ));
             project.tracks.len() - 1
@@ -98,13 +105,25 @@ pub fn import_source(
 
 pub fn execute(store: &mut Store, value: &Value) -> Result<Value> {
     let command = text(value, "command")?;
+    let language = value["language"].as_str().unwrap_or("en");
     match command {
         "snapshot" => {}
+        "preferences_patch" => {
+            store.set_language(text(value, "preference")?)?;
+        }
+        "preset_save" => {
+            store.save_preset(
+                text(value, "name")?,
+                serde_json::from_value(value["effects"].clone())?,
+                value["fxBypass"].as_bool().unwrap_or(false),
+            )?;
+        }
+        "regions_edit" | "clips_paste" => return crate::regions::execute(store, value),
         "working_directory" => {
             let path = if let Some(path) = value["path"].as_str() {
                 Some(PathBuf::from(path))
             } else {
-                native_files::directory()?
+                native_files::directory(language)?
             };
             if let Some(path) = path {
                 store.change_directory(path)?;
@@ -118,10 +137,14 @@ pub fn execute(store: &mut Store, value: &Value) -> Result<Value> {
             {
                 store.config.project_file.clone()
             } else {
-                native_files::project(true)?
+                native_files::project(true, language)?
             };
             if let Some(destination) = destination {
-                store.save(&destination)?;
+                if value["saveAs"].as_bool().unwrap_or(false) {
+                    store.save_with_options(&destination, true)?;
+                } else {
+                    store.save(&destination)?;
+                }
                 return Ok(json!({"saved":true,"path":destination,"snapshot":snapshot(store)}));
             }
             return Ok(json!({"saved":false}));
@@ -130,7 +153,7 @@ pub fn execute(store: &mut Store, value: &Value) -> Result<Value> {
             let source = if let Some(path) = value["path"].as_str() {
                 Some(PathBuf::from(path))
             } else {
-                native_files::project(false)?
+                native_files::project(false, language)?
             };
             if let Some(source) = source {
                 store.load(&source)?;
@@ -138,58 +161,80 @@ pub fn execute(store: &mut Store, value: &Value) -> Result<Value> {
         }
         "import_native" | "import_paths" => {
             let paths = if command == "import_native" {
-                native_files::media()?.unwrap_or_default()
+                native_files::media(language)?.unwrap_or_default()
             } else {
                 value["paths"]
                     .as_array()
-                    .context("Нет файлов")?
+                    .context(crate::i18n::message("error.filesMissing"))?
                     .iter()
-                    .map(|path| path.as_str().map(PathBuf::from).context("Неверный путь"))
+                    .map(|path| {
+                        path.as_str()
+                            .map(PathBuf::from)
+                            .context(crate::i18n::message("error.path"))
+                    })
                     .collect::<Result<Vec<_>>>()?
             };
-            ensure!(paths.len() <= 128, "Слишком много файлов за один импорт");
-            for source in paths {
-                let name = source
-                    .file_name()
-                    .context("Нет имени файла")?
-                    .to_string_lossy()
-                    .into_owned();
-                let extension = source
-                    .extension()
-                    .and_then(|x| x.to_str())
-                    .unwrap_or("")
-                    .to_lowercase();
-                let kind = if ["mp4", "mov", "mkv", "webm", "m4v"].contains(&extension.as_str()) {
-                    "video"
-                } else {
-                    "audio"
-                };
-                import_source(
-                    store,
-                    source,
-                    name,
-                    kind.into(),
-                    value["trackId"].as_str().map(str::to_owned),
-                    number(value, "position")?,
-                )?;
-            }
+            ensure!(
+                paths.len() <= 128,
+                crate::i18n::message("error.importFileCount")
+            );
+            let progress = store.progress.clone();
+            let count = paths.len();
+            let imported = (|| {
+                for (index, source) in paths.into_iter().enumerate() {
+                    store.progress = progress.range(index as f64 / count as f64, 1. / count as f64);
+                    let name = source
+                        .file_name()
+                        .context(crate::i18n::message("error.filenameMissing"))?
+                        .to_string_lossy()
+                        .into_owned();
+                    let extension = source
+                        .extension()
+                        .and_then(|x| x.to_str())
+                        .unwrap_or("")
+                        .to_lowercase();
+                    let kind = if ["mp4", "mov", "mkv", "webm", "m4v"].contains(&extension.as_str())
+                    {
+                        "video"
+                    } else {
+                        "audio"
+                    };
+                    import_source(
+                        store,
+                        source,
+                        name,
+                        kind.into(),
+                        value["trackId"].as_str().map(str::to_owned),
+                        number(value, "position")?,
+                    )?;
+                }
+                Ok::<_, anyhow::Error>(())
+            })();
+            store.progress = progress;
+            imported?;
         }
         "export" => {
             let format = text(value, "format")?;
-            ensure!(["wav", "mp3"].contains(&format), "Неверный формат");
+            ensure!(
+                ["wav", "mp3"].contains(&format),
+                crate::i18n::message("error.format")
+            );
             let destination = if let Some(path) = value["path"].as_str() {
                 Some(PathBuf::from(path))
             } else {
-                native_files::export(format)?
+                native_files::export(format, language)?
             };
             let Some(destination) = destination else {
                 return Ok(json!({"saved":false}));
             };
-            ensure!(destination.is_absolute(), "Нужен абсолютный путь экспорта");
+            ensure!(
+                destination.is_absolute(),
+                crate::i18n::message("error.exportPath")
+            );
             ensure!(
                 store.config.project_file.as_ref() != Some(&destination)
                     && !destination.starts_with(store.root()),
-                "Нельзя перезаписать проект или его кэш экспортом"
+                crate::i18n::message("error.exportOverwritesProject")
             );
             let temporary = destination.with_extension(format!("{}.partial", id()));
             let rendered = mixer::render(store, &temporary, value["trackId"].as_str(), format);
@@ -202,7 +247,7 @@ pub fn execute(store: &mut Store, value: &Value) -> Result<Value> {
         }
         "undo" => {
             if let Some(project) = store.history.pop() {
-                store.materialize()?;
+                store.begin_changes()?;
                 store.redo.push(store.project.clone());
                 store.project = project;
                 store.persist()?;
@@ -210,7 +255,7 @@ pub fn execute(store: &mut Store, value: &Value) -> Result<Value> {
         }
         "redo" => {
             if let Some(project) = store.redo.pop() {
-                store.materialize()?;
+                store.begin_changes()?;
                 store.history.push(store.project.clone());
                 store.project = project;
                 store.persist()?;

@@ -17,5 +17,11 @@ npm run build
 cargo xwin build --manifest-path backend/Cargo.toml --target x86_64-pc-windows-msvc --release --features desktop
 output_directory=/mnt/d/devw/my/tools/simpleVoiceover
 mkdir -p "$output_directory"
-cp backend/target/x86_64-pc-windows-msvc/release/simpleVoiceover.exe "$output_directory/simpleVoiceover.exe"
-printf 'Built: %s/simpleVoiceover.exe\nRun: svoice start\n' "$output_directory"
+application_version="$(node -p 'JSON.parse(require("fs").readFileSync("package.json", "utf8")).version.replace(/\.0$/, "")')"
+output_file="$output_directory/simpleVoiceover-v$application_version.exe"
+if [[ -e "$output_file" ]]; then
+  printf 'Build output already exists: %s\n' "$output_file" >&2
+  exit 1
+fi
+cp --no-clobber backend/target/x86_64-pc-windows-msvc/release/simpleVoiceover.exe "$output_file"
+printf 'Built: %s\n' "$output_file"

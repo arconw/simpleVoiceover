@@ -1,3 +1,4 @@
+import { currentLanguage, t } from '../i18n'
 import { invoke, isTauri } from '@tauri-apps/api/core'
 import { listen, type UnlistenFn } from '@tauri-apps/api/event'
 import { BrowserAudioIO } from '../audio/BrowserAudioIO'
@@ -7,6 +8,7 @@ import {
   type CommandPayloads,
   type CommandName,
   type CommandResult,
+  type OperationProgress,
 } from '../protocol'
 
 export class StudioClient {
@@ -15,11 +17,12 @@ export class StudioClient {
   private inFlight = 0
   private receiving = false
   private ended = false
-  private unlisten: UnlistenFn | null = null
+  private unlisten: UnlistenFn[] = []
   private disposed = false
   private drained: (() => void) | null = null
   private transitions: Promise<unknown> = Promise.resolve()
   onSnapshot: (value: Snapshot) => void = () => {}
+  onProgress: (value: OperationProgress) => void = () => {}
   onPosition: (value: number) => void = () => {}
   onEnded: () => void = () => {}
   onError: (reason: Error) => void = () => {}
@@ -37,7 +40,7 @@ export class StudioClient {
     }
     this.audio.onInput = (samples) => {
       if (!this.socket || this.socket.bufferedAmount > 2 * 1024 * 1024) {
-        this.onError(new Error('Аудиоканал не успевает принимать микрофон'))
+        this.onError(new Error(t('error.microphoneBackpressure')))
         return
       }
       const packet = new Uint8Array(samples.byteLength + 1)
@@ -47,13 +50,13 @@ export class StudioClient {
     }
   }
   async connect() {
-    if (!isTauri())
-      throw new Error('Открой simpleVoiceover.exe: управление студией доступно в приложении.')
-    const unlisten = await listen<Snapshot>('studio-snapshot', (event) =>
-      this.onSnapshot(event.payload),
-    )
+    if (!isTauri()) throw new Error(t('error.desktopOnly'))
+    const unlisten = await Promise.all([
+      listen<Snapshot>('studio-snapshot', (event) => this.onSnapshot(event.payload)),
+      listen<OperationProgress>('studio-progress', (event) => this.onProgress(event.payload)),
+    ])
     if (this.disposed) {
-      unlisten()
+      unlisten.forEach((unsubscribe) => unsubscribe())
       return
     }
     this.unlisten = unlisten
@@ -84,11 +87,11 @@ export class StudioClient {
       this.receiving = false
       this.audio.clear()
       this.audio.releaseMicrophone()
-      this.onError(new Error('Аудиоканал закрыт. Перезапусти приложение.'))
+      this.onError(new Error(t('error.audioClosed')))
     }
     await new Promise<void>((resolve, reject) => {
       this.socket!.onopen = () => resolve()
-      this.socket!.onerror = () => reject(new Error('Не удалось подключить аудиоканал'))
+      this.socket!.onerror = () => reject(new Error(t('error.audioConnect')))
     })
     await this.request('snapshot')
   }
@@ -97,7 +100,9 @@ export class StudioClient {
     payload: CommandPayloads[K] = {} as CommandPayloads[K],
   ): Promise<CommandResult> {
     try {
-      return await invoke<CommandResult>('studio_command', { request: { command, ...payload } })
+      return await invoke<CommandResult>('studio_command', {
+        request: { command, ...payload, language: currentLanguage() },
+      })
     } catch (error) {
       throw new Error(String(error))
     }
@@ -111,7 +116,7 @@ export class StudioClient {
     await new Promise<void>((resolve, reject) => {
       const timeout = setTimeout(() => {
         this.drained = null
-        reject(new Error('Аудиоканал не подтвердил завершение пакетов'))
+        reject(new Error(t('error.audioDrain')))
       }, 5000)
       this.drained = () => {
         clearTimeout(timeout)
@@ -176,7 +181,7 @@ export class StudioClient {
   }
   close() {
     this.disposed = true
-    this.unlisten?.()
+    this.unlisten.forEach((unsubscribe) => unsubscribe())
     if (this.socket) this.socket.onclose = null
     this.socket?.close()
     this.audio.close()

@@ -1,14 +1,38 @@
+import { t } from './i18n'
 import type { Track, MediaAsset } from './types'
+import type { LanguagePreference } from './i18n'
+import type { EffectPreset } from './effectPresets'
+import type { ClipRegion, ClipClipboard } from './timeline/selection'
+
+export interface OperationProgress {
+  label: string
+  percent: number
+}
 
 export interface Snapshot {
   project: { id: string; name: string; tracks: Track[]; assets: Omit<MediaAsset, 'url'>[] }
-  config: { workingDirectory: string; projectFile: string | null; dirty: boolean }
+  config: {
+    workingDirectory: string
+    projectFile: string | null
+    dirty: boolean
+    language?: LanguagePreference
+    effectPresets?: EffectPreset[]
+  }
   duration: number
   canUndo: boolean
   canRedo: boolean
 }
 export interface CommandPayloads {
   snapshot: Record<string, never>
+  preferences_patch: { preference: LanguagePreference }
+  preset_save: Omit<EffectPreset, 'id'>
+  regions_edit: { regions: ClipRegion[]; delta: number; trackOffset: number; remove?: boolean }
+  clips_paste: {
+    projectId: string
+    clips: ClipClipboard['clips']
+    trackId: string
+    position: number
+  }
   working_directory: { path?: string }
   save: { saveAs?: boolean }
   open: Record<string, never>
@@ -19,6 +43,7 @@ export interface CommandPayloads {
   track_add: Record<string, never>
   clip_remove: { trackId: string; clipId: string | null }
   clip_place: { trackId: string; assetId: string; position: number }
+  asset_remove: { assetId: string }
   clip_edit: { trackId: string; clipId: string; mode: string; delta: number }
   clip_split: { trackId: string; clipId: string; position: number }
   undo: Record<string, never>
@@ -34,16 +59,17 @@ export interface CommandResult {
   saved?: boolean
   path?: string
   snapshot?: Snapshot
+  regions?: ClipRegion[]
 }
 
 export function decodeAudioPacket(data: ArrayBuffer) {
   if (data.byteLength < 16 || (data.byteLength - 16) % 8 !== 0)
-    throw new Error('Повреждён аудиопакет')
+    throw new Error(t('error.audioPacketCorrupt'))
   const view = new DataView(data)
   if (
     view.getUint32(0, true) !== 0x504f5653 ||
     view.getUint32(4, true) * 8 + 16 !== data.byteLength
   )
-    throw new Error('Неверный формат аудиопакета')
+    throw new Error(t('error.audioPacketFormat'))
   return { samples: new Float32Array(data.slice(16)), position: view.getFloat64(8, true) }
 }

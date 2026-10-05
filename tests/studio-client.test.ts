@@ -88,7 +88,7 @@ describe('Tauri studio transport', () => {
     const client = await connected()
     await client.request('track_patch', { trackId: 'test', patch: { mute: true } })
     expect(calls.map((call) => call.command)).toEqual(['snapshot', 'track_patch'])
-    expect(subscriptions).toEqual(['studio-snapshot'])
+    expect(subscriptions).toEqual(['studio-snapshot', 'studio-progress'])
     expect(Socket.instances[0].sent).toHaveLength(0)
     await client.play(3)
     expect(Socket.instances[0].sent.map((packet) => packet[0])).toEqual([2, 3, 3, 3])

@@ -1,6 +1,10 @@
 param([ValidateSet('start','stop','status','logs')][string]$Action)
 $ErrorActionPreference = 'Stop'
 $studioExecutable = 'D:\devw\my\tools\simpleVoiceover\simpleVoiceover.exe'
+$versionedExecutable = 'D:\devw\my\tools\simpleVoiceover\simpleVoiceover-v1.2.exe'
+if (Test-Path -LiteralPath $versionedExecutable) { $studioExecutable = $versionedExecutable }
+$updatedExecutable = 'D:\devw\my\tools\simpleVoiceover\simpleVoiceover-v1.2.1.exe'
+if (Test-Path -LiteralPath $updatedExecutable) { $studioExecutable = $updatedExecutable }
 $studioUrl = 'http://127.0.0.1:5174'
 $studioLog = Join-Path $env:LOCALAPPDATA 'simpleVoiceover\simpleVoiceover.log'
 function Get-StudioStatus {

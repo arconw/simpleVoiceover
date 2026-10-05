@@ -17,10 +17,25 @@ pub struct Mixer {
     readers: HashMap<String, (File, u64, u64)>,
     processors: HashMap<String, Processor>,
     locations: HashMap<String, (PathBuf, u64, u64)>,
+    gains: HashMap<String, (crate::model::Effects, f32)>,
+    clip_output: bool,
 }
 type StereoBlock = (Vec<[f32; 2]>, HashMap<String, f32>);
 impl Mixer {
     pub fn new(store: &Store) -> Result<Self> {
+        Self::with_selection(store, None, None)
+    }
+    pub fn with_selection(
+        store: &Store,
+        selected: Option<&str>,
+        suppressed: Option<&str>,
+    ) -> Result<Self> {
+        let mut mixer = Self::unscaled(store)?;
+        mixer.gains = crate::loudness::gains(store, selected, suppressed)?;
+        mixer.clip_output = true;
+        Ok(mixer)
+    }
+    pub fn unscaled(store: &Store) -> Result<Self> {
         let mut locations = HashMap::new();
         for asset in &store.project.assets {
             locations.insert(asset.id.clone(), store.location(&asset.id, true)?);
@@ -29,6 +44,8 @@ impl Mixer {
             readers: HashMap::new(),
             processors: HashMap::new(),
             locations,
+            gains: HashMap::new(),
+            clip_output: false,
         })
     }
     pub fn block(
@@ -59,10 +76,10 @@ impl Mixer {
                     continue;
                 }
                 if !self.readers.contains_key(&clip.asset_id) {
-                    let (path, offset, length) = self
-                        .locations
-                        .get(&clip.asset_id)
-                        .ok_or_else(|| anyhow::anyhow!("Нет кэша исходника"))?;
+                    let (path, offset, length) =
+                        self.locations.get(&clip.asset_id).ok_or_else(|| {
+                            anyhow::anyhow!(crate::i18n::message("error.sourceCacheMissing"))
+                        })?;
                     self.readers
                         .insert(clip.asset_id.clone(), (File::open(path)?, *offset, *length));
                 }
@@ -85,15 +102,29 @@ impl Mixer {
                 .processors
                 .entry(track.id.clone())
                 .or_insert_with(|| Processor::new(&track.effects));
-            meters.insert(track.id.clone(), processor.process(track, &mut samples));
+            let peak = processor.process(track, &mut samples);
+            let gain = self
+                .gains
+                .get(&track.id)
+                .filter(|(settings, _)| !track.fx_bypass && settings == &track.effects)
+                .map_or(1., |(_, gain)| *gain);
+            if gain != 1. {
+                for sample in &mut samples {
+                    sample[0] *= gain;
+                    sample[1] *= gain;
+                }
+            }
+            meters.insert(track.id.clone(), peak * gain);
             for (mixed, sample) in mix.iter_mut().zip(samples) {
                 mixed[0] += sample[0];
                 mixed[1] += sample[1];
             }
         }
-        for sample in &mut mix {
-            sample[0] = sample[0].clamp(-1., 1.);
-            sample[1] = sample[1].clamp(-1., 1.);
+        if self.clip_output {
+            for sample in &mut mix {
+                sample[0] = sample[0].clamp(-1., 1.);
+                sample[1] = sample[1].clamp(-1., 1.);
+            }
         }
         Ok((mix, meters))
     }
@@ -105,14 +136,17 @@ pub fn render(
     selected: Option<&str>,
     format: &str,
 ) -> Result<()> {
-    ensure!(["wav", "mp3"].contains(&format), "Неподдерживаемый формат");
+    ensure!(
+        ["wav", "mp3"].contains(&format),
+        crate::i18n::message("error.unsupportedFormat")
+    );
     let duration = if let Some(id) = selected {
         store
             .project
             .tracks
             .iter()
             .find(|t| t.id == id)
-            .ok_or_else(|| anyhow::anyhow!("Нет дорожки"))?
+            .ok_or_else(|| anyhow::anyhow!(crate::i18n::message("error.trackMissing")))?
             .clips
             .iter()
             .map(|c| c.start + c.duration)
@@ -120,9 +154,9 @@ pub fn render(
     } else {
         store.project.duration()
     };
-    ensure!(duration > 0., "Нет аудио для экспорта");
+    ensure!(duration > 0., crate::i18n::message("error.noExportAudio"));
     let total = (duration * SAMPLE_RATE as f64).ceil() as u64;
-    let mut mixer = Mixer::new(store)?;
+    let mut mixer = Mixer::with_selection(store, selected, None)?;
     let mut writer = BufWriter::new(File::create(destination)?);
     let mut encoder = if format == "mp3" {
         Some(Mp3Encoder::new(

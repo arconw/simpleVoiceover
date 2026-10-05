@@ -1,3 +1,4 @@
+import { t } from '../i18n'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { formatTime } from '../types'
 import { clamp, minimumSpan } from './viewport'
@@ -21,10 +22,10 @@ export default function TimelineScrollbar({ recording, tool, viewport }: Props) 
     <div className="tl-bottom-row">
       <div className="tl-timeline-hint">
         {recording
-          ? 'ИДЁТ ЗАПИСЬ'
+          ? t('timeline.recording')
           : tool === 'split'
-            ? 'НАЖМИТЕ НА КЛИП ДЛЯ РАЗРЕЗА'
-            : 'ПЕРЕТАСКИВАЙТЕ КЛИПЫ И КРАЯ'}
+            ? t('timeline.splitHint')
+            : t('timeline.moveHint')}
       </div>
       <div
         ref={scrollbarRef}
@@ -41,7 +42,7 @@ export default function TimelineScrollbar({ recording, tool, viewport }: Props) 
         <div
           className="tl-scroll-thumb"
           role="slider"
-          aria-label="Область таймлайна"
+          aria-label={t('timeline.viewport')}
           aria-valuemin={0}
           aria-valuemax={Math.max(0, extent - view.span)}
           aria-valuenow={view.start}
@@ -68,8 +69,8 @@ export default function TimelineScrollbar({ recording, tool, viewport }: Props) 
         >
           <button
             className="tl-scroll-handle tl-scroll-handle-left"
-            title="Потяните для изменения масштаба"
-            aria-label="Масштаб: левая граница"
+            title={t('zoom.dragEdge')}
+            aria-label={t('zoom.leftEdge')}
             onPointerDown={(event) => beginScroll(event, 'left')}
             onPointerMove={moveScroll}
             onPointerUp={endScroll}
@@ -92,8 +93,8 @@ export default function TimelineScrollbar({ recording, tool, viewport }: Props) 
           <span className="tl-scroll-grip" />
           <button
             className="tl-scroll-handle tl-scroll-handle-right"
-            title="Потяните для изменения масштаба"
-            aria-label="Масштаб: правая граница"
+            title={t('zoom.dragEdge')}
+            aria-label={t('zoom.rightEdge')}
             onPointerDown={(event) => beginScroll(event, 'right')}
             onPointerMove={moveScroll}
             onPointerUp={endScroll}

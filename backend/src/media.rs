@@ -1,4 +1,5 @@
 use crate::model::{Asset, MAX_FRAMES, SAMPLE_RATE};
+use crate::{import_reader::ImportReader, progress::Progress};
 use anyhow::{Context, Result, ensure};
 use std::{
     fs::File,
@@ -6,16 +7,50 @@ use std::{
     path::Path,
 };
 use symphonia::core::{
-    audio::SampleBuffer, codecs::DecoderOptions, errors::Error, formats::FormatOptions,
-    io::MediaSourceStream, meta::MetadataOptions, probe::Hint,
+    audio::SampleBuffer,
+    codecs::DecoderOptions,
+    errors::Error,
+    formats::FormatOptions,
+    io::{MediaSource, MediaSourceStream},
+    meta::MetadataOptions,
+    probe::Hint,
 };
 
-pub fn decode(source: &Path, cache: &Path, mut asset: Asset) -> Result<Asset> {
+#[cfg(test)]
+pub fn decode(source: &Path, cache: &Path, asset: Asset) -> Result<Asset> {
+    decode_stream(Box::new(File::open(source)?), cache, asset, None)
+}
+
+pub fn import(
+    source: &Path,
+    owned: &Path,
+    cache: &Path,
+    asset: Asset,
+    progress: &Progress,
+) -> Result<Asset> {
+    let reader = ImportReader::new(
+        source,
+        owned,
+        asset.size,
+        crate::i18n::formatted_message("progress.import", &[("name", asset.name.clone())]),
+        progress.clone(),
+    )?;
+    let decoded = decode_stream(Box::new(reader.clone()), cache, asset, Some(&reader))?;
+    reader.finish()?;
+    Ok(decoded)
+}
+
+fn decode_stream(
+    source: Box<dyn MediaSource>,
+    cache: &Path,
+    mut asset: Asset,
+    import: Option<&ImportReader>,
+) -> Result<Asset> {
     let mut hint = Hint::new();
     if let Some(extension) = Path::new(&asset.name).extension().and_then(|s| s.to_str()) {
         hint.with_extension(extension);
     }
-    let stream = MediaSourceStream::new(Box::new(File::open(source)?), Default::default());
+    let stream = MediaSourceStream::new(source, Default::default());
     let probe = symphonia::default::get_probe().format(
         &hint,
         stream,
@@ -23,13 +58,30 @@ pub fn decode(source: &Path, cache: &Path, mut asset: Asset) -> Result<Asset> {
         &MetadataOptions::default(),
     )?;
     let mut format = probe.format;
-    let track = format.tracks().iter().find(|t| t.codec_params.sample_rate.is_some() && symphonia::default::get_codecs().make(&t.codec_params, &DecoderOptions::default()).is_ok()).context("Аудиокодек не поддерживается Rust-движком. Используй AAC-LC, MP3, WAV, FLAC, ALAC или Vorbis.")?;
+    let track = format
+        .tracks()
+        .iter()
+        .find(|t| {
+            t.codec_params.sample_rate.is_some()
+                && symphonia::default::get_codecs()
+                    .make(&t.codec_params, &DecoderOptions::default())
+                    .is_ok()
+        })
+        .context(crate::i18n::message("error.unsupportedCodec"))?;
     let track_id = track.id;
+    if let Some(import) = import {
+        let frames = track.codec_params.n_frames.unwrap_or(0);
+        let rate = track.codec_params.sample_rate.unwrap_or(SAMPLE_RATE);
+        import.expected_frames(frames.saturating_mul(SAMPLE_RATE as u64) / rate.max(1) as u64);
+    }
     let mut decoder =
         symphonia::default::get_codecs().make(&track.codec_params, &DecoderOptions::default())?;
     let mut output = BufWriter::with_capacity(256 * 1024, File::create(cache)?);
     let mut peaks = Peaks::new();
     let mut resampler = Resampler::new();
+    let mut sample_buffer: Option<SampleBuffer<f32>> = None;
+    let mut pcm_bytes = Vec::with_capacity(256 * 1024);
+    let mut input_rate = 0;
     loop {
         let packet = match format.next_packet() {
             Ok(p) => p,
@@ -45,23 +97,59 @@ pub fn decode(source: &Path, cache: &Path, mut asset: Asset) -> Result<Asset> {
             Err(e) => return Err(e.into()),
         };
         let rate = decoded.spec().rate;
+        ensure!(
+            (8000..=192000).contains(&rate) && (input_rate == 0 || input_rate == rate),
+            crate::i18n::message("error.sampleRate")
+        );
+        input_rate = rate;
         let channels = decoded.spec().channels.count();
-        ensure!(channels > 0, "Нет аудиоканалов");
-        let mut samples = SampleBuffer::<f32>::new(decoded.capacity() as u64, *decoded.spec());
+        ensure!(channels > 0, crate::i18n::message("error.noChannels"));
+        let required = decoded.capacity() * channels;
+        if sample_buffer
+            .as_ref()
+            .is_none_or(|buffer| buffer.capacity() < required)
+        {
+            sample_buffer = Some(SampleBuffer::<f32>::new(
+                decoded.capacity() as u64,
+                *decoded.spec(),
+            ));
+        }
+        let samples = sample_buffer.as_mut().unwrap();
         samples.copy_interleaved_ref(decoded);
-        for frame in samples.samples().chunks_exact(channels) {
-            let left = finite(frame[0]);
-            let right = finite(if channels > 1 { frame[1] } else { frame[0] });
-            resampler.push([left, right], rate, |sample| {
-                output.write_all(&sample[0].to_le_bytes())?;
-                output.write_all(&sample[1].to_le_bytes())?;
+        pcm_bytes.clear();
+        if rate == SAMPLE_RATE {
+            for frame in samples.samples().chunks_exact(channels) {
+                let sample = [
+                    finite(frame[0]),
+                    finite(if channels > 1 { frame[1] } else { frame[0] }),
+                ];
+                pcm_bytes.extend_from_slice(&sample[0].to_le_bytes());
+                pcm_bytes.extend_from_slice(&sample[1].to_le_bytes());
                 peaks.push(sample);
-                ensure!(
-                    peaks.frames <= MAX_FRAMES,
-                    "Медиа превышает предельную длительность проекта"
-                );
-                Ok(())
-            })?;
+            }
+            ensure!(
+                peaks.frames <= MAX_FRAMES,
+                crate::i18n::message("error.mediaDuration")
+            );
+        } else {
+            for frame in samples.samples().chunks_exact(channels) {
+                let left = finite(frame[0]);
+                let right = finite(if channels > 1 { frame[1] } else { frame[0] });
+                resampler.push([left, right], rate, |sample| {
+                    pcm_bytes.extend_from_slice(&sample[0].to_le_bytes());
+                    pcm_bytes.extend_from_slice(&sample[1].to_le_bytes());
+                    peaks.push(sample);
+                    ensure!(
+                        peaks.frames <= MAX_FRAMES,
+                        crate::i18n::message("error.mediaDuration")
+                    );
+                    Ok(())
+                })?;
+            }
+        }
+        output.write_all(&pcm_bytes)?;
+        if let Some(import) = import {
+            import.decoded_frames(peaks.frames);
         }
     }
     resampler.finish(|sample| {
@@ -72,7 +160,10 @@ pub fn decode(source: &Path, cache: &Path, mut asset: Asset) -> Result<Asset> {
     })?;
     output.flush()?;
     output.get_ref().sync_all()?;
-    ensure!(peaks.frames > 0, "В файле нет декодируемого звука");
+    ensure!(
+        peaks.frames > 0,
+        crate::i18n::message("error.noDecodableAudio")
+    );
     asset.frames = peaks.frames;
     asset.duration = peaks.frames as f64 / SAMPLE_RATE as f64;
     asset.sample_rate = SAMPLE_RATE;
@@ -113,7 +204,7 @@ impl Resampler {
     ) -> Result<()> {
         ensure!(
             (8000..=192000).contains(&rate) && (self.rate == 0 || self.rate == rate),
-            "Неподдерживаемая частота аудио"
+            crate::i18n::message("error.sampleRate")
         );
         self.rate = rate;
         if let Some(previous) = self.previous {

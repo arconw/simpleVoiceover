@@ -1,3 +1,4 @@
+import { t } from '../i18n'
 import { memo, useEffect, useRef } from 'react'
 import type { MediaAsset } from '../types'
 export default memo(function Waveform({
@@ -50,5 +51,5 @@ export default memo(function Waveform({
       context.fillRect(x, height / 2 - high * 19.5, 1, Math.max(0.7, (high - low) * 19.5))
     }
   }, [asset, offset, duration, width, color])
-  return <canvas ref={ref} className="tl-waveform" aria-label="Форма звуковой волны" />
+  return <canvas ref={ref} className="tl-waveform" aria-label={t('waveform.label')} />
 })

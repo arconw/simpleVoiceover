@@ -29,11 +29,13 @@
   justify-content: space-between;
   padding: 0 13px;
   flex-shrink: 0;
+  gap: 4px;
 }
 .tl-toolbar-group {
   align-items: center;
   display: flex;
   gap: 5px;
+  flex-shrink: 0;
 }
 .tl-toolbar-title {
   color: #b8bcb8;
@@ -168,6 +170,10 @@
   gap: 7px;
   min-width: 0;
 }
+.tl-timeline.is-panning .tl-lane,
+.tl-timeline.is-panning .tl-clip {
+  cursor: grabbing;
+}
 .tl-track-heading > svg {
   color: var(--tl-track-color);
   flex-shrink: 0;
@@ -295,6 +301,26 @@
   min-width: 0;
   overflow: hidden;
   position: relative;
+}
+.tl-range-selection {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: #d6ee9b12;
+  border-left: 1px solid #d6ee9b99;
+  border-right: 1px solid #d6ee9b99;
+  pointer-events: none;
+  z-index: 2;
+}
+.tl-selection-grip {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 7px;
+  background: #d6ee9b66;
+  cursor: grab;
+  pointer-events: auto;
 }
 .tl-track-row.is-selected .tl-lane {
   background: #191c1a;

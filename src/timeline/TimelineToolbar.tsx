@@ -1,4 +1,14 @@
-import { Maximize2, Minus, MousePointer2, Plus, Scissors, Trash2 } from 'lucide-react'
+import { t } from '../i18n'
+import {
+  Copy,
+  ClipboardPaste,
+  Maximize2,
+  Minus,
+  MousePointer2,
+  Plus,
+  Scissors,
+  Trash2,
+} from 'lucide-react'
 import type { Track } from '../types'
 import type { TimelineProps } from './types'
 import type { TimelineViewport } from './useTimelineViewport'
@@ -7,6 +17,7 @@ import { minimumSpan } from './viewport'
 type Props = Pick<
   TimelineProps,
   | 'tracks'
+  | 'transport'
   | 'tool'
   | 'onToolChange'
   | 'recording'
@@ -16,6 +27,11 @@ type Props = Pick<
   | 'onRemoveClip'
   | 'duration'
   | 'onAddTrack'
+  | 'onCopy'
+  | 'onPaste'
+  | 'canPaste'
+  | 'selection'
+  | 'operationPending'
 > & { viewport: TimelineViewport; canDelete: boolean; selectedTrack?: Track }
 export default function TimelineToolbar({
   tracks,
@@ -31,19 +47,25 @@ export default function TimelineToolbar({
   viewport,
   canDelete,
   selectedTrack,
+  transport,
+  onCopy,
+  onPaste,
+  canPaste,
+  selection,
+  operationPending,
 }: Props) {
   const { view, setView, zoom } = viewport
   return (
     <div className="tl-toolbar">
       <div className="tl-toolbar-group">
         <span className="tl-toolbar-title">
-          ДОРОЖКИ <span>{tracks.length.toString().padStart(2, '0')}</span>
+          {t('timeline.tracks')} <span>{tracks.length.toString().padStart(2, '0')}</span>
         </span>
         <span className="tl-divider" />
         <button
           className={`tl-tool ${tool === 'select' ? 'is-active' : ''}`}
-          title="Выделить и переместить (V)"
-          aria-label="Выделить и переместить"
+          title={t('tools.selectTitle')}
+          aria-label={t('tools.selectMove')}
           aria-pressed={tool === 'select'}
           onClick={() => onToolChange('select')}
         >
@@ -51,8 +73,8 @@ export default function TimelineToolbar({
         </button>
         <button
           className={`tl-tool ${tool === 'split' ? 'is-active' : ''}`}
-          title="Разрезать клип (X)"
-          aria-label="Разрезать клип"
+          title={t('tools.splitTitle')}
+          aria-label={t('tools.splitClip')}
           aria-pressed={tool === 'split'}
           onClick={() => onToolChange('split')}
           disabled={recording}
@@ -61,8 +83,8 @@ export default function TimelineToolbar({
         </button>
         <button
           className="tl-tool"
-          title="Разрезать выбранный клип в позиции курсора"
-          aria-label="Разрезать в позиции курсора"
+          title={t('tools.splitAtPlayheadTitle')}
+          aria-label={t('tools.splitAtPlayhead')}
           disabled={!canDelete}
           onClick={() => {
             if (selectedTrack && selectedClipId)
@@ -73,32 +95,53 @@ export default function TimelineToolbar({
         </button>
         <button
           className="tl-tool"
-          title="Удалить выделенный клип (Delete)"
-          aria-label="Удалить выделенный клип"
+          title={t('tools.deleteTitle')}
+          aria-label={t('tools.delete')}
           disabled={!canDelete}
           onClick={onRemoveClip}
         >
           <Trash2 size={14} />
         </button>
+        <button
+          className="tl-tool"
+          title={t('selection.copy')}
+          aria-label={t('selection.copy')}
+          disabled={
+            recording || operationPending || (!selectedClipId && !selection?.regions.length)
+          }
+          onClick={onCopy}
+        >
+          <Copy size={13} />
+        </button>
+        <button
+          className="tl-tool"
+          title={t('selection.paste')}
+          aria-label={t('selection.paste')}
+          disabled={recording || operationPending || !canPaste}
+          onClick={onPaste}
+        >
+          <ClipboardPaste size={13} />
+        </button>
       </div>
+      {transport}
       <div className="tl-toolbar-group">
         <span className="tl-zoom-label">
           {view.span < 60
-            ? `${Math.round(view.span)} сек`
-            : `${Math.round((view.span / 60) * 10) / 10} мин`}
+            ? t('units.secondsValue', { value0: Math.round(view.span) })
+            : t('units.minutesValue', { value0: Math.round((view.span / 60) * 10) / 10 })}
         </span>
         <button
           className="tl-tool"
-          title="Уменьшить масштаб"
-          aria-label="Уменьшить масштаб"
+          title={t('zoom.outTitle')}
+          aria-label={t('zoom.out')}
           onClick={() => zoom(1.5)}
         >
           <Minus size={15} />
         </button>
         <button
           className="tl-tool"
-          title="Увеличить масштаб"
-          aria-label="Увеличить масштаб"
+          title={t('zoom.inTitle')}
+          aria-label={t('zoom.in')}
           disabled={view.span <= minimumSpan}
           onClick={() => zoom(1 / 1.5)}
         >
@@ -106,8 +149,8 @@ export default function TimelineToolbar({
         </button>
         <button
           className="tl-tool"
-          title="Показать весь проект"
-          aria-label="Показать весь проект"
+          title={t('zoom.fit')}
+          aria-label={t('zoom.fit')}
           onClick={() =>
             setView({ start: 0, span: Math.max(5, duration > 0 ? duration * 1.05 : 60) })
           }
@@ -116,7 +159,7 @@ export default function TimelineToolbar({
         </button>
         <span className="tl-divider" />
         <button className="tl-add-track" onClick={onAddTrack} disabled={recording}>
-          <Plus size={14} /> Дорожка
+          <Plus size={14} /> {t('timeline.addTrack')}{' '}
         </button>
       </div>
     </div>

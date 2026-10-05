@@ -1,3 +1,4 @@
+import { localizedName, t } from '../i18n'
 import { AudioLines, LockKeyhole, Mic, UnlockKeyhole, Video, WandSparkles } from 'lucide-react'
 import type { Track } from '../types'
 import TrackMeter from './TrackMeter'
@@ -32,9 +33,9 @@ export default function TrackHeader({
         <button
           className="tl-track-name"
           onClick={() => onSelectTrack(track.id)}
-          title={track.name}
+          title={localizedName(track.name)}
         >
-          {track.name}
+          {localizedName(track.name)}
         </button>
         <span className="tl-track-db">
           {track.volume > 0 ? '+' : ''}
@@ -45,8 +46,8 @@ export default function TrackHeader({
         <div className="tl-circles">
           <button
             className={`tl-circle ${track.mute ? 'is-muted' : ''}`}
-            title="Заглушить дорожку"
-            aria-label={`Заглушить: ${track.name}`}
+            title={t('track.mute')}
+            aria-label={t('track.muteLabel', { value0: localizedName(track.name) })}
             aria-pressed={track.mute}
             onClick={() => onUpdateTrack(track.id, { mute: !track.mute })}
           >
@@ -54,8 +55,8 @@ export default function TrackHeader({
           </button>
           <button
             className={`tl-circle ${track.solo ? 'is-solo' : ''}`}
-            title="Соло дорожки"
-            aria-label={`Соло: ${track.name}`}
+            title={t('track.solo')}
+            aria-label={t('track.soloLabel', { value0: localizedName(track.name) })}
             aria-pressed={track.solo}
             onClick={() => onUpdateTrack(track.id, { solo: !track.solo })}
           >
@@ -63,12 +64,8 @@ export default function TrackHeader({
           </button>
           <button
             className={`tl-circle ${track.armed ? 'is-armed' : ''}`}
-            title={
-              track.kind === 'video'
-                ? 'Для записи выберите аудиодорожку'
-                : 'Записывать микрофон на эту дорожку'
-            }
-            aria-label={`Подготовить к записи: ${track.name}`}
+            title={track.kind === 'video' ? t('track.selectAudio') : t('track.recordHere')}
+            aria-label={t('track.armLabel', { value0: localizedName(track.name) })}
             aria-pressed={track.armed}
             disabled={track.kind === 'video' || recording}
             onClick={() => onUpdateTrack(track.id, { armed: !track.armed })}
@@ -77,8 +74,8 @@ export default function TrackHeader({
           </button>
           <button
             className={`tl-circle ${track.locked ? 'is-active' : ''}`}
-            title={track.locked ? 'Разблокировать монтаж дорожки' : 'Заблокировать монтаж дорожки'}
-            aria-label={`Блокировка: ${track.name}`}
+            title={track.locked ? t('track.unlock') : t('track.lock')}
+            aria-label={t('track.lockLabel', { value0: localizedName(track.name) })}
             aria-pressed={track.locked}
             onClick={() => onUpdateTrack(track.id, { locked: !track.locked })}
           >
@@ -86,8 +83,8 @@ export default function TrackHeader({
           </button>
           <button
             className={`tl-circle ${!track.fxBypass ? 'is-fx' : ''}`}
-            title={track.fxBypass ? 'Включить эффекты' : 'Обойти эффекты'}
-            aria-label={`Эффекты: ${track.name}`}
+            title={track.fxBypass ? t('track.enableFx') : t('track.bypassFx')}
+            aria-label={t('track.fxLabel', { value0: localizedName(track.name) })}
             aria-pressed={!track.fxBypass}
             onClick={() => onUpdateTrack(track.id, { fxBypass: !track.fxBypass })}
           >
@@ -98,8 +95,8 @@ export default function TrackHeader({
               key={slot}
               className="tl-circle tl-reserved"
               disabled
-              title="Резерв для будущих инструментов"
-              aria-label="Резерв для будущих инструментов"
+              title={t('track.reserved')}
+              aria-label={t('track.reserved')}
             />
           ))}
         </div>
@@ -107,12 +104,12 @@ export default function TrackHeader({
           <TrackMeter id={track.id} getLevel={getLevel} />
           <span>
             {track.locked
-              ? 'ЗАБЛОКИРОВАНО'
+              ? t('track.locked')
               : track.armed
-                ? '● МИКРОФОН'
+                ? t('track.microphone')
                 : track.kind === 'video'
-                  ? 'АУДИО ВИДЕО'
-                  : 'АУДИОДОРОЖКА'}
+                  ? t('track.videoAudio')
+                  : t('track.audioTrack')}
           </span>
         </div>
       </div>

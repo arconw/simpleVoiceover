@@ -17,7 +17,7 @@ pub async fn run() -> Result<()> {
             "--config-dir" => config = Some(PathBuf::from(args.next().unwrap_or_default())),
             "--project" => project = Some(PathBuf::from(args.next().unwrap_or_default())),
             "--headless" => headless = true,
-            _ => anyhow::bail!("Неизвестный аргумент: {argument}"),
+            _ => anyhow::bail!("Unknown argument: {argument}"),
         }
     }
     let directory = config.unwrap_or_else(|| {
@@ -57,8 +57,8 @@ pub async fn run() -> Result<()> {
             })
             .await
     });
-    tracing::info!("simpleVoiceover запущен: {address}");
-    #[cfg(all(windows, feature = "desktop"))]
+    tracing::info!("simpleVoiceover started: {address}");
+    #[cfg(feature = "desktop")]
     if !headless {
         crate::desktop::run(studio.clone(), &address)?;
         studio.shutdown.notify_waiters();

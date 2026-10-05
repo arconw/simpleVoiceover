@@ -23,6 +23,18 @@ pub struct Effects {
     pub makeup: f32,
     pub gate_threshold: f32,
     pub gate_reduction: f32,
+    #[serde(default)]
+    pub normalize: bool,
+    #[serde(default = "default_loudness")]
+    pub target_lufs: f32,
+    #[serde(default = "default_true_peak")]
+    pub true_peak: f32,
+}
+fn default_loudness() -> f32 {
+    -16.
+}
+fn default_true_peak() -> f32 {
+    -1.5
 }
 impl Effects {
     pub fn neutral() -> Self {
@@ -38,6 +50,9 @@ impl Effects {
             makeup: 0.,
             gate_threshold: -48.,
             gate_reduction: 0.,
+            normalize: false,
+            target_lufs: default_loudness(),
+            true_peak: default_true_peak(),
         }
     }
     pub fn voice() -> Self {
@@ -48,6 +63,7 @@ impl Effects {
             lowpass: 15000.,
             ratio: 2.3,
             makeup: 2.9,
+            normalize: true,
             ..Self::neutral()
         }
     }
@@ -64,10 +80,12 @@ impl Effects {
             (self.makeup, 0., 8.),
             (self.gate_threshold, -70., -25.),
             (self.gate_reduction, 0., 12.),
+            (self.target_lufs, -24., -9.),
+            (self.true_peak, -6., -0.1),
         ] {
             ensure!(
                 v.is_finite() && v >= lo && v <= hi,
-                "Недопустимое значение эффекта"
+                crate::i18n::message("error.effectValue")
             );
         }
         Ok(())
@@ -157,13 +175,13 @@ pub struct Project {
 impl Project {
     pub fn new() -> Self {
         Self {
-            version: 2,
+            version: 3,
             id: id(),
-            name: "Моя сессия".into(),
+            name: "project.defaultName".into(),
             tracks: vec![
-                Track::new("video", "Звук видео"),
-                Track::new("voice", "Мой голос"),
-                Track::new("audio", "Музыка и фон"),
+                Track::new("video", "track.video"),
+                Track::new("voice", "track.voice"),
+                Track::new("audio", "track.music"),
             ],
             assets: vec![],
         }
@@ -176,64 +194,78 @@ impl Project {
             .fold(0., f64::max)
     }
     pub fn validate(&self) -> Result<()> {
-        ensure!(self.version == 2, "Неподдерживаемая версия проекта");
+        ensure!(
+            [2, 3].contains(&self.version),
+            crate::i18n::message("error.projectVersion")
+        );
         Uuid::parse_str(&self.id)?;
         ensure!(
             self.tracks.len() <= 128 && self.assets.len() <= 10000,
-            "Слишком много дорожек или медиа"
+            crate::i18n::message("error.projectItemCount")
         );
         let mut ids = std::collections::HashSet::new();
         let mut armed = 0;
         for a in &self.assets {
             Uuid::parse_str(&a.id)?;
-            ensure!(ids.insert(a.id.clone()), "Повторяющийся идентификатор");
+            ensure!(
+                ids.insert(a.id.clone()),
+                crate::i18n::message("error.duplicateId")
+            );
             ensure!(
                 a.size <= MAX_UPLOAD
                     && a.duration.is_finite()
                     && a.duration >= 0.
                     && a.frames <= MAX_FRAMES
                     && a.sample_rate == SAMPLE_RATE,
-                "Некорректное медиа"
+                crate::i18n::message("error.media")
             );
             ensure!(
                 a.peak_frames > 0
                     && a.waveform.len() <= 65536
                     && a.waveform.iter().flatten().all(|x| x.is_finite()),
-                "Некорректная форма волны"
+                crate::i18n::message("error.waveform")
             );
         }
         for t in &self.tracks {
             Uuid::parse_str(&t.id)?;
-            ensure!(ids.insert(t.id.clone()), "Повторяющийся идентификатор");
+            ensure!(
+                ids.insert(t.id.clone()),
+                crate::i18n::message("error.duplicateId")
+            );
             ensure!(
                 ["audio", "video", "voice"].contains(&t.kind.as_str()),
-                "Неизвестный тип дорожки"
+                crate::i18n::message("error.trackType")
             );
             ensure!(
                 t.volume.is_finite()
                     && (-60. ..=12.).contains(&t.volume)
                     && t.pan.is_finite()
                     && (-1. ..=1.).contains(&t.pan),
-                "Некорректный микшер"
+                crate::i18n::message("error.mixer")
             );
             ensure!(
                 t.clips.len() <= 10000 && t.name.len() <= 512,
-                "Слишком много клипов"
+                crate::i18n::message("error.clipCount")
             );
             t.effects.validate()?;
             armed += usize::from(t.armed);
             ensure!(
                 !t.armed || t.kind != "video",
-                "Эта дорожка не может записывать"
+                crate::i18n::message("error.trackCannotRecord")
             );
             for c in &t.clips {
                 Uuid::parse_str(&c.id)?;
-                ensure!(ids.insert(c.id.clone()), "Повторяющийся идентификатор");
+                ensure!(
+                    ids.insert(c.id.clone()),
+                    crate::i18n::message("error.duplicateId")
+                );
                 let a = self
                     .assets
                     .iter()
                     .find(|a| a.id == c.asset_id)
-                    .ok_or_else(|| anyhow::anyhow!("Нет исходника клипа"))?;
+                    .ok_or_else(|| {
+                        anyhow::anyhow!(crate::i18n::message("error.clipSourceMissing"))
+                    })?;
                 ensure!(
                     [c.start, c.offset, c.duration]
                         .iter()
@@ -241,11 +273,14 @@ impl Project {
                         && c.duration > 0.
                         && c.offset + c.duration <= a.duration + 0.001
                         && c.start <= 2_000_000.,
-                    "Некорректные границы клипа"
+                    crate::i18n::message("error.clipBounds")
                 );
             }
         }
-        ensure!(armed <= 1, "Одновременно может записываться одна дорожка");
+        ensure!(
+            armed <= 1,
+            crate::i18n::message("error.recordingTrackCount")
+        );
         Ok(())
     }
 }

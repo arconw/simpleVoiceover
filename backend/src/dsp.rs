@@ -78,10 +78,11 @@ impl Processor {
             *self = next;
         }
         let settings = &self.settings;
-        let attack = (-1. / (SAMPLE_RATE as f32 * settings.attack / 1000.)).exp();
-        let release = (-1. / (SAMPLE_RATE as f32 * settings.release / 1000.)).exp();
+        let attack = (4000. / (SAMPLE_RATE as f32 * settings.attack)).min(1.);
+        let release = (4000. / (SAMPLE_RATE as f32 * settings.release)).min(1.);
         let left_gain = db(track.volume) * (1. - track.pan.max(0.)).sqrt();
         let right_gain = db(track.volume) * (1. + track.pan.min(0.)).sqrt();
+        let makeup = db(settings.makeup);
         let mut peak: f32 = 0.;
         for sample in samples {
             if !track.fx_bypass {
@@ -90,16 +91,17 @@ impl Processor {
                         *x = filter.sample(*x, channel);
                     }
                 }
-                let level = sample[0].abs().max(sample[1].abs());
-                let smoothing = if level > self.envelope {
+                let level = (sample[0].abs() + sample[1].abs()) * 0.5;
+                let energy = level * level;
+                let smoothing = if energy > self.envelope {
                     attack
                 } else {
                     release
                 };
-                self.envelope = smoothing * self.envelope + (1. - smoothing) * level;
-                let level_db = 20. * self.envelope.max(1e-9).log10();
+                self.envelope += (energy - self.envelope) * smoothing;
+                let level_db = 10. * self.envelope.max(1e-18).log10();
                 let over = level_db - settings.threshold;
-                let knee = 6.;
+                let knee = 20. * 2.5f32.log10();
                 let reduction = if over < -knee / 2. {
                     0.
                 } else if over > knee / 2. {
@@ -108,12 +110,7 @@ impl Processor {
                     (1. - 1. / settings.ratio) * (over + knee / 2.).powi(2) / (2. * knee)
                 };
                 let target = db(-reduction);
-                let speed = if target < self.compression {
-                    attack
-                } else {
-                    release
-                };
-                self.compression = speed * self.compression + (1. - speed) * target;
+                self.compression = target;
                 let gate_target = db(-settings.gate_reduction
                     * ((settings.gate_threshold - level_db) / 12.).clamp(0., 1.));
                 let gate_speed = if gate_target > self.gate {
@@ -121,8 +118,8 @@ impl Processor {
                 } else {
                     release
                 };
-                self.gate = gate_speed * self.gate + (1. - gate_speed) * gate_target;
-                let gain = self.compression * self.gate * db(settings.makeup);
+                self.gate += (gate_target - self.gate) * gate_speed;
+                let gain = self.compression * self.gate * makeup;
                 sample[0] *= gain;
                 sample[1] *= gain;
             }
@@ -147,5 +144,33 @@ mod tests {
         processor.process(&track, &mut samples);
         assert!(samples.iter().all(|s| s[0] == 0. && s[1].is_finite()));
         assert!(samples[47999][1].abs() < 0.001);
+    }
+    #[test]
+    fn rms_compression_changes_audio_and_bypass_preserves_it() {
+        let mut track = Track::new("voice", "Voice");
+        track.effects = Effects::neutral();
+        track.effects.ratio = 4.;
+        track.fx_bypass = false;
+        let source: Vec<_> = (0..SAMPLE_RATE)
+            .map(|frame| {
+                let x = 0.2 * (2. * PI * 1000. * frame as f32 / SAMPLE_RATE as f32).sin();
+                [x, x]
+            })
+            .collect();
+        let mut processed = source.clone();
+        Processor::new(&track.effects).process(&track, &mut processed);
+        let rms = |samples: &[[f32; 2]]| {
+            (samples[SAMPLE_RATE as usize / 2..]
+                .iter()
+                .map(|sample| sample[0] * sample[0])
+                .sum::<f32>()
+                / (SAMPLE_RATE / 2) as f32)
+                .sqrt()
+        };
+        assert!(rms(&processed) < rms(&source) * 0.6);
+        track.fx_bypass = true;
+        let mut bypassed = source.clone();
+        Processor::new(&track.effects).process(&track, &mut bypassed);
+        assert_eq!(bypassed, source);
     }
 }

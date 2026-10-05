@@ -1,3 +1,4 @@
+import { t } from '../i18n'
 import { formatTime } from '../types'
 import type { TimelineProps } from './types'
 import type { TimelineViewport } from './useTimelineViewport'
@@ -9,15 +10,15 @@ export default function TimelineRuler({ recording, position, duration, onSeek, v
   return (
     <div className="tl-ruler-row">
       <div className="tl-ruler-heading">
-        <span>ТРЕК / УПРАВЛЕНИЕ</span>
-        <span>УРОВЕНЬ</span>
+        <span>{t('timeline.controls')}</span>
+        <span>{t('timeline.level')}</span>
       </div>
       <div
         ref={rulerRef}
         className="tl-ruler"
         role="slider"
         tabIndex={0}
-        aria-label="Позиция воспроизведения"
+        aria-label={t('timeline.playhead')}
         aria-valuemin={0}
         aria-valuemax={Math.max(extent, position)}
         aria-valuenow={position}

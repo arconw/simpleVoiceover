@@ -1,7 +1,7 @@
 {
   "name": "simple-voiceover",
   "private": true,
-  "version": "0.2.0",
+  "version": "1.2.1",
   "type": "module",
   "scripts": {
     "dev": "vite --host 127.0.0.1 --port 5175 --strictPort",
@@ -21,6 +21,7 @@
     "react-dom": "^19.0.0"
   },
   "devDependencies": {
+    "@tauri-apps/cli": "2.12.1",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@vitejs/plugin-react": "^4.3.4",

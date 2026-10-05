@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { decodeAudioPacket } from '../src/protocol'
 import { shortcutFor } from '../src/shortcuts'
-import { dragViewport, thumbGeometry } from '../src/timeline/viewport'
+import { dragViewport, thumbGeometry, zoomViewport } from '../src/timeline/viewport'
 
 describe('studio keyboard', () => {
   const key = (code: string, ctrlKey = false, shiftKey = false, altKey = false) =>
@@ -18,8 +18,19 @@ describe('studio keyboard', () => {
   it('distinguishes undo, redo, save and save as', () => {
     expect(key('KeyZ', true)).toBe('undo')
     expect(key('KeyZ', true, true)).toBe('redo')
+    expect(key('KeyC', true)).toBe('copy')
+    expect(key('KeyV', true)).toBe('paste')
     expect(key('KeyS', true)).toBe('save')
     expect(key('KeyS', true, true)).toBe('saveAs')
+  })
+  it('handles plus and minus on the main keyboard and numpad', () => {
+    expect(key('Equal', true)).toBe('zoomIn')
+    expect(key('Equal', true, true)).toBe('zoomIn')
+    expect(key('NumpadAdd', true)).toBe('zoomIn')
+    expect(key('Minus', true)).toBe('zoomOut')
+    expect(key('NumpadSubtract', true)).toBe('zoomOut')
+    expect(key('Minus')).toBeNull()
+    expect(key('Equal', true, false, true)).toBeNull()
   })
 })
 
@@ -39,6 +50,15 @@ describe('zoom scrollbar', () => {
     expect(dragViewport(view, 100, 600, 'right', 30)).toEqual({ start: 20, span: 15 })
     expect(dragViewport(view, 100, 600, 'left', 600).span).toBe(2)
     expect(dragViewport(view, 100, 600, 'pan', -600).start).toBe(0)
+  })
+  it('keeps the pointer time or playhead fixed while zooming', () => {
+    const zoomed = zoomViewport(view, 0.5, 3600, 0, 0.75)
+    expect(zoomed.span).toBe(5)
+    expect(zoomed.start + zoomed.span * 0.75).toBe(27.5)
+    const keyboard = zoomViewport(view, 0.5, 3600, 22)
+    expect(keyboard.start + keyboard.span * 0.2).toBe(22)
+    expect(zoomViewport(view, 0.001, 3600, 22).span).toBe(2)
+    expect(zoomViewport(view, 1000, 3600, 0, 0).span).toBe(3600)
   })
 })
 

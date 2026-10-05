@@ -1,6 +1,11 @@
-import { AudioLines, HelpCircle, Monitor, Plus } from 'lucide-react'
+import { t } from '../i18n'
+import { AudioLines, Plus } from 'lucide-react'
+import { isTauri } from '@tauri-apps/api/core'
+import { getCurrentWindow } from '@tauri-apps/api/window'
 import { formatTime } from '../types'
+import { useRef } from 'react'
 import type { StudioController } from '../useStudio'
+import OperationProgress from './OperationProgress'
 
 type Props = Pick<
   StudioController,
@@ -8,7 +13,8 @@ type Props = Pick<
   | 'recording'
   | 'recordStart'
   | 'busy'
-  | 'setHelp'
+  | 'progress'
+  | 'showError'
   | 'importNative'
   | 'videoRef'
   | 'previewPosition'
@@ -22,7 +28,8 @@ export default function VideoPreview({
   recording,
   recordStart,
   busy,
-  setHelp,
+  progress,
+  showError,
   importNative,
   videoRef,
   previewPosition,
@@ -30,23 +37,51 @@ export default function VideoPreview({
   videoAsset,
   videoFiles,
 }: Props) {
+  const dragOrigin = useRef<{ x: number; y: number } | null>(null)
+  const stageRef = useRef<HTMLDivElement>(null)
   return (
     <section className="preview-panel">
-      <div className="preview-heading">
-        <span>
-          <Monitor size={14} /> ПРЕДПРОСМОТР
-        </span>
-        <small>{videoAsset ? videoAsset.name : 'ВИДЕО + ТВОЙ ГОЛОС'}</small>
-        <button
-          className="icon-button"
-          title="Как пользоваться"
-          aria-label="Как пользоваться"
-          onClick={() => setHelp(true)}
-        >
-          <HelpCircle size={16} />
-        </button>
-      </div>
-      <div className={`video-stage ${videoAsset ? 'has-video' : ''}`}>
+      <div
+        ref={stageRef}
+        title={t('preview.fullscreen')}
+        className={`video-stage ${videoAsset ? 'has-video' : ''}`}
+        onMouseDown={(event) => {
+          if (
+            event.button !== 0 ||
+            !isTauri() ||
+            document.fullscreenElement ||
+            (event.target as Element).closest('button,input,select')
+          )
+            return
+          event.preventDefault()
+          dragOrigin.current = { x: event.clientX, y: event.clientY }
+        }}
+        onMouseMove={(event) => {
+          const origin = dragOrigin.current
+          if (!origin || !(event.buttons & 1)) {
+            dragOrigin.current = null
+            return
+          }
+          if (Math.hypot(event.clientX - origin.x, event.clientY - origin.y) < 5) return
+          dragOrigin.current = null
+          void getCurrentWindow().startDragging().catch(showError)
+        }}
+        onMouseUp={() => {
+          dragOrigin.current = null
+        }}
+        onMouseLeave={() => {
+          dragOrigin.current = null
+        }}
+        onDoubleClick={(event) => {
+          if ((event.target as Element).closest('button,input,select')) return
+          dragOrigin.current = null
+          const operation = document.fullscreenElement
+            ? document.exitFullscreen()
+            : stageRef.current?.requestFullscreen()
+          void operation?.catch(showError)
+        }}
+      >
+        <OperationProgress busy={busy} progress={progress} />
         {videoAsset && videoClip ? (
           <video
             key={videoAsset.id}
@@ -67,24 +102,19 @@ export default function VideoPreview({
               <span />
             </div>
             <div className="preview-empty-copy">
-              <span className="eyebrow">ТВОЯ МАЛЕНЬКАЯ СТУДИЯ</span>
+              <span className="eyebrow">{t('preview.eyebrow')}</span>
               <h1>
-                Картинка. Голос.
-                <br />
-                <em>Всё на своих дорожках.</em>
+                {t('preview.headline')} <br />
+                <em>{t('preview.tagline')}</em>
               </h1>
-              <p>
-                {videoFiles.length
-                  ? 'Перемести курсор на видеоклип для просмотра.'
-                  : 'Добавь видео, надень наушники и запиши свою историю.'}
-              </p>
+              <p>{videoFiles.length ? t('preview.seekHint') : t('preview.importHint')}</p>
               <button
                 className="button secondary"
                 disabled={recording || !!busy}
                 onClick={() => void importNative()}
               >
                 <Plus size={15} />
-                Открыть медиа
+                {t('media.open')}{' '}
               </button>
             </div>
             <div className="preview-corner top-left" />

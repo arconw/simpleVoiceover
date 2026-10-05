@@ -1,4 +1,4 @@
-use crate::{commands, controller, state::StudioState};
+use crate::{commands, controller, progress::Progress, state::StudioState};
 use anyhow::Result;
 use serde_json::Value;
 use std::sync::{
@@ -19,16 +19,21 @@ async fn studio_command(
     request: Value,
 ) -> std::result::Result<Value, String> {
     let studio = state.studio.clone();
+    let progress_app = app.clone();
     let result = tauri::async_runtime::spawn_blocking(move || {
         let mut store = studio
             .store
             .lock()
-            .map_err(|_| anyhow::anyhow!("Хранилище недоступно"))?;
+            .map_err(|_| anyhow::anyhow!(crate::i18n::message("error.storeUnavailable")))?;
         let mut audio = studio
             .audio
             .lock()
-            .map_err(|_| anyhow::anyhow!("Аудиодвижок недоступен"))?;
+            .map_err(|_| anyhow::anyhow!(crate::i18n::message("error.engineUnavailable")))?;
+        store.progress = Progress::new(move |event| {
+            let _ = progress_app.emit("studio-progress", event);
+        });
         let result = controller::execute(&mut store, &mut audio, &request);
+        store.progress = Progress::default();
         Ok::<_, anyhow::Error>((result, commands::snapshot(&store)))
     })
     .await
@@ -49,12 +54,12 @@ fn close_studio(
         .studio
         .store
         .try_lock()
-        .map_err(|_| "Дождись завершения операции")?;
+        .map_err(|_| crate::i18n::message("error.waitForOperation"))?;
     let audio = state
         .studio
         .audio
         .try_lock()
-        .map_err(|_| "Дождись завершения операции")?;
+        .map_err(|_| crate::i18n::message("error.waitForOperation"))?;
     crate::lifecycle::prepare_close(&mut store, &audio, without_saving)
         .map_err(|error| error.to_string())?;
     state.allow_close.store(true, Ordering::SeqCst);
@@ -82,11 +87,15 @@ pub fn run(studio: StudioState, address: &str) -> Result<()> {
                     .window("main")
                     .remote(format!("{}/*", url.origin().ascii_serialization()))
                     .permission("core:event:default")
+                    .permission("core:window:allow-minimize")
+                    .permission("core:window:allow-toggle-maximize")
+                    .permission("core:window:allow-start-dragging")
                     .permission("allow-studio-command")
                     .permission("allow-close-studio"),
             )?;
             WebviewWindowBuilder::new(app, "main", WebviewUrl::External(url.clone()))
-                .title("simpleVoiceover")
+                .title(format!("simpleVoiceover v{}", env!("CARGO_PKG_VERSION")))
+                .decorations(false)
                 .inner_size(1440., 900.)
                 .min_inner_size(960., 700.)
                 .on_navigation(move |next| next.origin() == url.origin())

@@ -1,3 +1,4 @@
+import { t } from '../i18n'
 export class BrowserAudioIO {
   private context: AudioContext | null = null
   private output: AudioWorkletNode | null = null
@@ -13,7 +14,7 @@ export class BrowserAudioIO {
   async open() {
     if (!this.context) {
       this.context = new AudioContext({ sampleRate: 48000, latencyHint: 'interactive' })
-      if (this.context.sampleRate !== 48000) throw new Error('Браузер не поддерживает аудио 48 кГц')
+      if (this.context.sampleRate !== 48000) throw new Error(t('error.browserSampleRate'))
       await this.context.audioWorklet.addModule('/audio-io.js')
       this.output = new AudioWorkletNode(this.context, 'studio-output', {
         numberOfInputs: 0,

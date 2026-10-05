@@ -1,3 +1,4 @@
+import { t } from '../i18n'
 import { X } from 'lucide-react'
 import type { StudioController } from '../useStudio'
 
@@ -10,67 +11,83 @@ export default function HelpDialog({ setHelp }: Props) {
         className="help-modal"
         role="dialog"
         aria-modal="true"
-        aria-label="Как пользоваться студией"
+        aria-label={t('help.dialog')}
         onClick={(e) => e.stopPropagation()}
       >
-        <button className="modal-close" aria-label="Закрыть справку" onClick={() => setHelp(false)}>
+        <button className="modal-close" aria-label={t('help.close')} onClick={() => setHelp(false)}>
           <X size={18} />
         </button>
-        <span className="eyebrow">SIMPLEVOICEOVER · БЫСТРЫЙ СТАРТ</span>
-        <h2>От видео до готового войса</h2>
+        <span className="eyebrow">{t('help.eyebrow')}</span>
+        <h2>{t('help.title')}</h2>
         <ol>
           <li>
-            <strong>Добавь видео.</strong> Его звук появится отдельной дорожкой.
+            <strong>{t('help.videoTitle')}</strong> {t('help.videoBody')}{' '}
           </li>
           <li>
-            <strong>Нажми R на дорожке голоса.</strong> Запись идёт только в одну дорожку. Включи
-            наушники для мониторинга.
+            <strong>{t('help.armTitle')}</strong> {t('help.armBody')}{' '}
           </li>
           <li>
-            <strong>Поставь курсор и нажми «Запись».</strong> Видео и остальные дорожки будут
-            звучать вместе с микрофоном.
+            <strong>{t('help.recordTitle')}</strong> {t('help.recordBody')}{' '}
           </li>
           <li>
-            <strong>Выбери дорожку и открой «Эффекты».</strong> Пресет регулируется; исходник
-            остаётся нетронутым.
+            <strong>{t('help.effectsTitle')}</strong> {t('help.effectsBody')}{' '}
           </li>
           <li>
-            <strong>Сохрани проект или экспортируй WAV / MP3.</strong> Проект включает все исходники
-            и монтаж. Каждая дорожка экспортируется отдельно из микшера.
+            <strong>{t('help.saveTitle')}</strong> {t('help.saveBody')}{' '}
           </li>
         </ol>
         <div className="shortcut-grid">
           <span>
-            <kbd>Space</kbd>Пуск / пауза
+            <kbd>Space</kbd>
+            {t('help.playShortcut')}{' '}
           </span>
           <span>
-            <kbd>R</kbd>Запись / завершить
+            <kbd>R</kbd>
+            {t('help.recordShortcut')}{' '}
           </span>
           <span>
-            <kbd>V</kbd>Стрелка
+            <kbd>V</kbd>
+            {t('tools.select')}{' '}
           </span>
           <span>
-            <kbd>X</kbd>Ножницы
+            <kbd>X</kbd>
+            {t('tools.split')}{' '}
           </span>
           <span>
-            <kbd>Delete</kbd>Убрать клип
+            <kbd>Delete</kbd>
+            {t('tools.remove')}{' '}
           </span>
           <span>
-            <kbd>Ctrl Z</kbd>Отменить
+            <kbd>Ctrl Z</kbd>
+            {t('history.undo')}{' '}
           </span>
           <span>
-            <kbd>Ctrl Shift Z</kbd>Повторить
+            <kbd>Ctrl Shift Z</kbd>
+            {t('history.redo')}{' '}
           </span>
           <span>
-            <kbd>Ctrl S</kbd>Сохранить и очистить историю
+            <kbd>Ctrl S</kbd>
+            {t('help.saveShortcut')}{' '}
+          </span>
+          <span>
+            <kbd>Ctrl C</kbd>
+            {t('help.copyShortcut')}
+          </span>
+          <span>
+            <kbd>Ctrl V</kbd>
+            {t('help.pasteShortcut')}
+          </span>
+          <span>
+            <kbd>Ctrl + / −</kbd>
+            {t('help.zoomShortcut')}{' '}
+          </span>
+          <span>
+            <kbd>{t('help.wheelKeys')}</kbd>
+            {t('help.wheelShortcut')}{' '}
           </span>
         </div>
-        <p className="muted hint">
-          Перетаскивай клипы и их края для монтажа. Края полосы прокрутки меняют масштаб. Lock
-          защищает монтаж клипов, Mute заглушает только воспроизведение. При закрытии окна
-          приложение предложит сохранить .justspeak. Экспорт — аудио; исходное видео хранится в
-          проекте.
-        </p>
+        <p className="muted hint">{t('help.editing')} </p>
+        <p className="muted hint">{t('help.selection')}</p>
       </section>
     </div>
   )

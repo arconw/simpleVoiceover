@@ -1,4 +1,5 @@
-import { Check, FileAudio, FileVideo, FolderOpen, Plus, Upload } from 'lucide-react'
+import { t } from '../i18n'
+import { Check, FileAudio, FileVideo, FolderOpen, Plus, Trash2, Upload } from 'lucide-react'
 import { formatTime } from '../types'
 import type { StudioController } from '../useStudio'
 
@@ -9,6 +10,7 @@ type Props = Pick<
   | 'busy'
   | 'saveProject'
   | 'placeAsset'
+  | 'removeAsset'
   | 'chooseWorkingDirectory'
   | 'importNative'
   | 'snapshot'
@@ -20,6 +22,7 @@ export default function FilesPanel({
   busy,
   saveProject,
   placeAsset,
+  removeAsset,
   chooseWorkingDirectory,
   importNative,
   snapshot,
@@ -27,7 +30,7 @@ export default function FilesPanel({
   return (
     <div className="files-panel">
       <div className="panel-heading">
-        <span className="eyebrow">МЕДИА ПРОЕКТА</span>
+        <span className="eyebrow">{t('files.heading')}</span>
         <span className="counter">{assets.length}</span>
       </div>
       <button
@@ -38,9 +41,9 @@ export default function FilesPanel({
         <span className="upload-icon">
           <Upload size={22} />
         </span>
-        <strong>Добавь видео или аудио</strong>
-        <span>Выбери файл или перетащи его сюда</span>
-        <small>MP4/AAC, WAV, MP3, FLAC · до 100 ГБ</small>
+        <strong>{t('files.addTitle')}</strong>
+        <span>{t('files.addHint')}</span>
+        <small>{t('files.formats')}</small>
       </button>
       {assets.length ? (
         <div className="asset-list">
@@ -52,16 +55,25 @@ export default function FilesPanel({
               <div>
                 <strong title={asset.name}>{asset.name}</strong>
                 <small>
-                  {formatTime(asset.duration)} · {`${asset.sampleRate / 1000} кГц`}
+                  {formatTime(asset.duration)} ·{' '}
+                  {t('units.khzValue', { value0: asset.sampleRate / 1000 })}
                 </small>
               </div>
               <button
-                title="Добавить файл на выбранную дорожку в позицию курсора"
-                aria-label={`Добавить ${asset.name} на дорожку`}
+                title={t('files.placeTitle')}
+                aria-label={t('files.placeLabel', { value0: asset.name })}
                 disabled={recording || !!busy}
                 onClick={() => placeAsset(asset)}
               >
                 <Plus size={15} />
+              </button>
+              <button
+                title={t('files.removeTitle')}
+                aria-label={t('files.removeLabel', { value0: asset.name })}
+                disabled={recording || !!busy}
+                onClick={() => removeAsset(asset)}
+              >
+                <Trash2 size={15} />
               </button>
             </div>
           ))}
@@ -74,8 +86,8 @@ export default function FilesPanel({
             <i />
           </span>
           <p>
-            Здесь будут твои исходники
-            <br />и записанные дубли
+            {t('files.emptySources')} <br />
+            {t('files.emptyTakes')}{' '}
           </p>
         </div>
       )}
@@ -86,32 +98,32 @@ export default function FilesPanel({
           onClick={() => void importNative()}
         >
           <FolderOpen size={15} />
-          Открыть файл с диска
+          {t('files.openDisk')}{' '}
         </button>
         <button
           className="text-button"
           disabled={recording || !!busy}
           onClick={() => void chooseWorkingDirectory()}
         >
-          <FolderOpen size={14} /> Рабочий каталог
+          <FolderOpen size={14} /> {t('project.workingDirectory')}{' '}
         </button>
         <small title={snapshot?.config.workingDirectory}>{snapshot?.config.workingDirectory}</small>
         <p className="hint muted">
           {snapshot?.config.projectFile
-            ? `Проект: ${snapshot.config.projectFile}. Кэш изменений появится рядом; Ctrl+S упакует и уберёт его.`
-            : 'Здесь хранится кэш несохранённого проекта. Ctrl+S упакует его в файл.'}
+            ? t('files.savedCache', { value0: snapshot.config.projectFile })
+            : t('files.unsavedCache')}
         </p>
         <button
           className="text-button"
           disabled={recording || !!busy}
           onClick={() => void saveProject(true)}
         >
-          Сохранить как…
+          {t('project.saveAs')}{' '}
         </button>
       </div>
       <div className="local-note">
         <Check size={14} />
-        <span>Медиа остаются на этом устройстве</span>
+        <span>{t('files.localOnly')}</span>
       </div>
     </div>
   )

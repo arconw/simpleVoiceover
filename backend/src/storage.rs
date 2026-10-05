@@ -1,16 +1,13 @@
-use crate::model::Project;
-use crate::{
-    archive::{extract_archive, read_manifest, save_archive, verify_archive},
-    filesystem::atomic_json,
-};
+use crate::model::{Effects, Project, id};
+use crate::{archive::Archive, filesystem::atomic_json, indexed_archive, progress::Progress};
 use anyhow::{Context, Result, ensure};
 use serde::{Deserialize, Serialize};
 use std::{
     fs::{self, File},
     io::{self, Read},
     path::{Path, PathBuf},
+    sync::Mutex,
 };
-use zip::ZipArchive;
 
 #[derive(Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -19,6 +16,23 @@ pub struct Config {
     pub active_project: String,
     pub project_file: Option<PathBuf>,
     pub dirty: bool,
+    #[serde(default = "default_language")]
+    pub language: String,
+    #[serde(default)]
+    pub effect_presets: Vec<EffectPreset>,
+}
+
+#[derive(Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct EffectPreset {
+    pub id: String,
+    pub name: String,
+    pub effects: Effects,
+    pub fx_bypass: bool,
+}
+
+fn default_language() -> String {
+    "system".into()
 }
 pub struct Store {
     pub config_directory: PathBuf,
@@ -26,6 +40,9 @@ pub struct Store {
     pub project: Project,
     pub history: Vec<Project>,
     pub redo: Vec<Project>,
+    pub archive: Option<Archive>,
+    pub progress: Progress,
+    pub loudness_cache: Mutex<crate::loudness::LoudnessCache>,
 }
 
 impl Store {
@@ -41,26 +58,41 @@ impl Store {
                 active_project: project.id.clone(),
                 project_file: None,
                 dirty: true,
+                language: default_language(),
+                effect_presets: vec![],
             }
         };
         if let Some(path) = working {
             config.working_directory = path;
         }
         uuid::Uuid::parse_str(&config.active_project)?;
+        if config.language != "system"
+            && !crate::i18n::LANGUAGES.contains(&config.language.as_str())
+        {
+            config.language = default_language();
+        }
         ensure!(
             config.working_directory.is_absolute(),
-            "Рабочий каталог должен быть абсолютным"
+            crate::i18n::message("error.workingDirectoryAbsolute")
         );
+        let saved = config
+            .project_file
+            .as_deref()
+            .map(Archive::open)
+            .transpose()?;
         let active = project_root(&config).join("project.json");
         let mut project = if config.dirty && active.exists() {
             serde_json::from_reader(File::open(active)?.take(32 * 1024 * 1024))?
-        } else if let Some(path) = &config.project_file {
-            read_manifest(path)?
+        } else if let Some((saved_project, _)) = &saved {
+            saved_project.clone()
         } else {
             project
         };
         project.validate()?;
-        ensure!(!project.tracks.is_empty(), "В проекте нет дорожек");
+        ensure!(
+            !project.tracks.is_empty(),
+            crate::i18n::message("error.noTracks")
+        );
         if !config.dirty {
             project.id = config.active_project.clone();
         }
@@ -71,12 +103,60 @@ impl Store {
             project,
             history: vec![],
             redo: vec![],
+            archive: saved.map(|(_, archive)| archive),
+            progress: Progress::default(),
+            loudness_cache: Mutex::new(Default::default()),
         };
         store.persist()?;
         Ok(store)
     }
     pub fn root(&self) -> PathBuf {
         project_root(&self.config)
+    }
+    pub fn set_language(&mut self, language: &str) -> Result<()> {
+        ensure!(
+            language == "system" || crate::i18n::LANGUAGES.contains(&language),
+            crate::i18n::message("error.language")
+        );
+        let mut config = self.config.clone();
+        config.language = language.into();
+        atomic_json(&self.config_directory.join("settings.json"), &config)
+            .context(crate::i18n::message("error.preferencesSave"))?;
+        self.config = config;
+        Ok(())
+    }
+    pub fn save_preset(&mut self, name: &str, effects: Effects, fx_bypass: bool) -> Result<()> {
+        let name = name.trim();
+        ensure!(
+            !name.is_empty() && name.chars().count() <= 80 && !name.chars().any(char::is_control),
+            crate::i18n::message("error.presetName")
+        );
+        effects.validate()?;
+        let mut config = self.config.clone();
+        if let Some(preset) = config
+            .effect_presets
+            .iter_mut()
+            .find(|preset| preset.name.to_lowercase() == name.to_lowercase())
+        {
+            preset.name = name.into();
+            preset.effects = effects;
+            preset.fx_bypass = fx_bypass;
+        } else {
+            ensure!(
+                config.effect_presets.len() < 64,
+                crate::i18n::message("error.presetLimit")
+            );
+            config.effect_presets.push(EffectPreset {
+                id: id(),
+                name: name.into(),
+                effects,
+                fx_bypass,
+            });
+        }
+        atomic_json(&self.config_directory.join("settings.json"), &config)
+            .context(crate::i18n::message("error.preferencesSave"))?;
+        self.config = config;
+        Ok(())
     }
     pub fn source(&self, id: &str) -> PathBuf {
         self.root().join("media").join(id)
@@ -96,7 +176,7 @@ impl Store {
     }
     pub fn replace(&mut self, project: Project) -> Result<()> {
         project.validate()?;
-        self.materialize()?;
+        self.begin_changes()?;
         self.history.push(self.project.clone());
         self.redo.clear();
         if self.history.len() > 40 {
@@ -106,8 +186,11 @@ impl Store {
         self.persist()
     }
     pub fn change_directory(&mut self, path: PathBuf) -> Result<()> {
-        ensure!(path.is_absolute(), "Рабочий каталог должен быть абсолютным");
-        fs::create_dir_all(&path).context("Не удалось создать рабочий каталог")?;
+        ensure!(
+            path.is_absolute(),
+            crate::i18n::message("error.workingDirectoryAbsolute")
+        );
+        fs::create_dir_all(&path).context(crate::i18n::message("error.createWorkingDirectory"))?;
         let path = fs::canonicalize(path)?;
         if self.config.project_file.is_some() {
             self.config.working_directory = path;
@@ -120,32 +203,26 @@ impl Store {
         }
         ensure!(
             !path.starts_with(&old_root),
-            "Нельзя выбрать папку внутри текущего кэша проекта"
+            crate::i18n::message("error.workingDirectoryInsideCache")
         );
         ensure!(
             !new_root.exists(),
-            "В выбранном каталоге уже есть кэш этого проекта"
+            crate::i18n::message("error.existingCache")
         );
         copy_directory(&old_root, &new_root)?;
         self.config.working_directory = path;
         self.persist()?;
         ensure!(
             old_root.file_name().and_then(|x| x.to_str()) == Some(self.project.id.as_str()),
-            "Небезопасный путь старого кэша"
+            crate::i18n::message("error.oldCachePath")
         );
         fs::remove_dir_all(old_root)?;
         Ok(())
     }
-    pub fn materialize(&mut self) -> Result<()> {
+    pub fn begin_changes(&mut self) -> Result<()> {
         if self.config.dirty {
             return Ok(());
         }
-        let archive = self
-            .config
-            .project_file
-            .as_ref()
-            .context("Нет файла проекта")?;
-        extract_archive(archive, &self.project, &self.root())?;
         self.config.dirty = true;
         self.persist()
     }
@@ -155,37 +232,52 @@ impl Store {
         } else {
             format!("media/{asset}")
         };
-        if self.config.dirty {
-            let path = self.root().join(name);
+        let path = self.root().join(&name);
+        if self.config.dirty && path.exists() {
             let length = fs::metadata(&path)?.len();
             return Ok((path, 0, length));
         }
-        let path = self
-            .config
-            .project_file
+        let archive = self
+            .archive
             .as_ref()
-            .context("Нет файла проекта")?;
-        let mut archive = ZipArchive::new(File::open(path)?)?;
-        let entry = archive.by_name(&name)?;
-        Ok((path.clone(), entry.data_start(), entry.size()))
+            .context(crate::i18n::message("error.projectFileMissing"))?;
+        let region = archive
+            .entries
+            .get(&name)
+            .context(crate::i18n::message("error.projectMediaMissing"))?;
+        Ok((archive.path.clone(), region.offset, region.length))
     }
     pub fn save(&mut self, destination: &Path) -> Result<()> {
-        if !self.config.dirty && self.config.project_file.as_deref() == Some(destination) {
+        self.save_with_options(destination, false)
+    }
+    pub fn save_with_options(&mut self, destination: &Path, compact: bool) -> Result<()> {
+        if !compact
+            && !self.config.dirty
+            && self.config.project_file.as_deref() == Some(destination)
+        {
             self.history.clear();
             self.redo.clear();
             return Ok(());
         }
-        self.materialize()?;
         let old_root = self.root();
         let parent = destination
             .parent()
-            .context("Нужен абсолютный путь проекта")?;
+            .context(crate::i18n::message("error.projectPath"))?;
         ensure!(
             destination.is_absolute() && !destination.starts_with(&old_root),
-            "Сохрани проект вне его временного кэша"
+            crate::i18n::message("error.saveOutsideCache")
         );
         fs::create_dir_all(parent)?;
-        save_archive(&self.project, &old_root, destination)?;
+        let archive = indexed_archive::save(
+            &self.project,
+            &old_root,
+            self.archive.as_ref(),
+            destination,
+            compact,
+            &self.progress,
+        )?;
+        self.archive = Some(archive);
+        self.project.version = 3;
         self.config.project_file = Some(destination.to_path_buf());
         self.config.dirty = false;
         self.history.clear();
@@ -197,20 +289,25 @@ impl Store {
                 .and_then(|x| x.to_str())
                 .is_some_and(|x| x == self.project.id
                     || x == format!(".simpleVoiceover-{}", self.project.id)),
-            "Небезопасный путь кэша"
+            crate::i18n::message("error.cachePath")
         );
-        fs::remove_dir_all(&old_root)
-            .context("Проект сохранён, но временный кэш не удалось убрать")?;
+        if old_root.exists() {
+            fs::remove_dir_all(&old_root).context(crate::i18n::message("error.cacheCleanup"))?;
+        }
         Ok(())
     }
     pub fn load(&mut self, archive: &Path) -> Result<()> {
-        let mut project = read_manifest(archive)?;
-        verify_archive(archive, &project)?;
+        ensure!(
+            archive.is_absolute(),
+            crate::i18n::message("error.projectPath")
+        );
+        let (mut project, index) = Archive::open(archive)?;
         project.id = crate::model::id();
         self.project = project;
         self.config.active_project = self.project.id.clone();
         self.config.project_file = Some(archive.to_path_buf());
         self.config.dirty = false;
+        self.archive = Some(index);
         self.history.clear();
         self.redo.clear();
         self.persist()
@@ -235,7 +332,7 @@ impl Store {
                 .file_name()
                 .and_then(|name| name.to_str())
                 .is_some_and(|name| name == old_id || name == format!(".simpleVoiceover-{old_id}")),
-            "Небезопасный путь кэша"
+            crate::i18n::message("error.cachePath")
         );
         if old_root.exists() {
             fs::remove_dir_all(old_root)?;
@@ -260,7 +357,7 @@ fn copy_directory(source: &Path, destination: &Path) -> Result<()> {
         let entry = entry?;
         ensure!(
             !entry.file_type()?.is_symlink(),
-            "Ссылки в кэше не поддерживаются"
+            crate::i18n::message("error.cacheSymlinks")
         );
         let target = destination.join(entry.file_name());
         if entry.file_type()?.is_dir() {
@@ -279,6 +376,16 @@ fn copy_directory(source: &Path, destination: &Path) -> Result<()> {
 mod tests {
     use super::*;
     use crate::model::{Asset, SAMPLE_RATE};
+    use std::io::{Seek, SeekFrom};
+
+    fn pcm_bytes(store: &Store, asset: &str) -> Result<Vec<u8>> {
+        let (path, offset, length) = store.location(asset, true)?;
+        let mut file = File::open(path)?;
+        file.seek(SeekFrom::Start(offset))?;
+        let mut bytes = Vec::new();
+        file.take(length).read_to_end(&mut bytes)?;
+        Ok(bytes)
+    }
     #[test]
     fn project_carries_cache_across_workspaces() -> Result<()> {
         let temp = tempfile::tempdir()?;
@@ -309,9 +416,10 @@ mod tests {
         let (_, offset, length) = store.location(&asset.id, true)?;
         assert!(offset > 0);
         assert_eq!(length, 8);
-        store.materialize()?;
+        store.begin_changes()?;
         assert!(store.root().starts_with(temp.path()));
-        assert_eq!(fs::read(store.pcm(&asset.id))?, [1u8; 8]);
+        assert!(!store.pcm(&asset.id).exists());
+        assert_eq!(pcm_bytes(&store, &asset.id)?, [1u8; 8]);
         store.save(&saved)?;
         assert!(!store.root().exists());
         let mut restored = Store::open(
@@ -319,9 +427,10 @@ mod tests {
             Some(temp.path().join("elsewhere")),
         )?;
         restored.load(&saved)?;
-        restored.materialize()?;
+        restored.begin_changes()?;
         assert_eq!(restored.project.assets[0].waveform[0], [-0.5, 0.5]);
-        assert_eq!(fs::read(restored.pcm(&asset.id))?, [1u8; 8]);
+        assert!(!restored.pcm(&asset.id).exists());
+        assert_eq!(pcm_bytes(&restored, &asset.id)?, [1u8; 8]);
         Ok(())
     }
 }

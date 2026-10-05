@@ -9,9 +9,27 @@ use serde_json::Value;
 pub fn execute(store: &mut Store, value: &Value) -> Result<()> {
     let command = text(value, "command")?;
     match command {
+        "asset_remove" => {
+            let asset_id = text(value, "assetId")?;
+            let mut project = store.project.clone();
+            ensure!(
+                project.assets.iter().any(|asset| asset.id == asset_id),
+                crate::i18n::message("error.sourceMissing")
+            );
+            ensure!(
+                !project.tracks.iter().any(|track| track.locked
+                    && track.clips.iter().any(|clip| clip.asset_id == asset_id)),
+                crate::i18n::message("error.assetOnLockedTrack")
+            );
+            for track in &mut project.tracks {
+                track.clips.retain(|clip| clip.asset_id != asset_id);
+            }
+            project.assets.retain(|asset| asset.id != asset_id);
+            store.replace(project)?;
+        }
         "track_add" => {
             let mut project = store.project.clone();
-            project.tracks.push(Track::new("audio", "Аудио"));
+            project.tracks.push(Track::new("audio", "track.audio"));
             store.replace(project)?;
         }
         "track_patch" => {
@@ -21,8 +39,10 @@ pub fn execute(store: &mut Store, value: &Value) -> Result<()> {
                 .tracks
                 .iter()
                 .position(|t| t.id == track_id)
-                .context("Нет дорожки")?;
-            let patch = value["patch"].as_object().context("Нет изменений")?;
+                .context(crate::i18n::message("error.trackMissing"))?;
+            let patch = value["patch"]
+                .as_object()
+                .context(crate::i18n::message("error.patchMissing"))?;
             let mut serialized = serde_json::to_value(&project.tracks[index])?;
             for (key, val) in patch {
                 ensure!(
@@ -31,7 +51,7 @@ pub fn execute(store: &mut Store, value: &Value) -> Result<()> {
                         "effects"
                     ]
                     .contains(&key.as_str()),
-                    "Недопустимое поле дорожки"
+                    crate::i18n::message("error.trackField")
                 );
                 serialized[key] = val.clone();
             }
@@ -50,16 +70,16 @@ pub fn execute(store: &mut Store, value: &Value) -> Result<()> {
                 .assets
                 .iter()
                 .find(|a| Some(a.id.as_str()) == value["assetId"].as_str())
-                .context("Нет исходника")?
+                .context(crate::i18n::message("error.sourceMissing"))?
                 .clone();
             let track = project
                 .tracks
                 .iter_mut()
                 .find(|t| Some(t.id.as_str()) == value["trackId"].as_str())
-                .context("Нет дорожки")?;
+                .context(crate::i18n::message("error.trackMissing"))?;
             ensure!(
                 !track.locked && (asset.kind == "video") == (track.kind == "video"),
-                "Выбери незаблокированную дорожку подходящего типа"
+                crate::i18n::message("error.selectCompatibleTrack")
             );
             track.clips.push(Clip {
                 id: id(),
@@ -78,13 +98,13 @@ pub fn execute(store: &mut Store, value: &Value) -> Result<()> {
                 .tracks
                 .iter_mut()
                 .find(|t| Some(t.id.as_str()) == value["trackId"].as_str())
-                .context("Нет дорожки")?;
-            ensure!(!track.locked, "Дорожка заблокирована");
+                .context(crate::i18n::message("error.trackMissing"))?;
+            ensure!(!track.locked, crate::i18n::message("error.trackLocked"));
             let index = track
                 .clips
                 .iter()
                 .position(|c| Some(c.id.as_str()) == value["clipId"].as_str())
-                .context("Нет клипа")?;
+                .context(crate::i18n::message("error.clipMissing"))?;
             if command == "clip_remove" {
                 track.clips.remove(index);
             } else if command == "clip_split" {
@@ -130,12 +150,12 @@ pub fn execute(store: &mut Store, value: &Value) -> Result<()> {
                         clip.duration = (clip.duration + delta)
                             .clamp(1. / SAMPLE_RATE as f64, duration - clip.offset);
                     }
-                    _ => bail!("Неизвестный монтажный инструмент"),
+                    _ => bail!(crate::i18n::message("error.editTool")),
                 }
             }
             store.replace(project)?;
         }
-        _ => bail!("Неизвестная команда монтажа"),
+        _ => bail!(crate::i18n::message("error.editCommand")),
     }
     Ok(())
 }

@@ -12,6 +12,9 @@ export interface EffectSettings {
   makeup: number
   gateThreshold: number
   gateReduction: number
+  normalize: boolean
+  targetLufs: number
+  truePeak: number
 }
 
 export interface MediaAsset {
@@ -63,6 +66,9 @@ export const neutralEffects: EffectSettings = {
   makeup: 0,
   gateThreshold: -48,
   gateReduction: 0,
+  normalize: false,
+  targetLufs: -16,
+  truePeak: -1.5,
 }
 
 export const voiceEffects: EffectSettings = {
@@ -77,6 +83,9 @@ export const voiceEffects: EffectSettings = {
   makeup: 2.9,
   gateThreshold: -48,
   gateReduction: 0,
+  normalize: true,
+  targetLufs: -16,
+  truePeak: -1.5,
 }
 
 export const formatTime = (value: number, precise = false) => {

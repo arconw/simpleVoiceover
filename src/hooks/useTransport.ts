@@ -1,11 +1,14 @@
+import { t } from '../i18n'
 import { useEffect, useRef, useState, type MutableRefObject } from 'react'
 import type { StudioClient } from '../services/StudioClient'
 import type { MediaAsset, Track } from '../types'
+import type { OperationProgress } from '../protocol'
 
 interface Options {
   engineRef: MutableRefObject<StudioClient | null>
   busy: string
   setBusy: (value: string) => void
+  setProgress: (value: OperationProgress | null) => void
   setNotice: (value: string) => void
   showError: (reason: unknown) => void
   duration: number
@@ -18,6 +21,7 @@ export function useTransport({
   engineRef,
   busy,
   setBusy,
+  setProgress,
   setNotice,
   showError,
   duration,
@@ -35,7 +39,7 @@ export function useTransport({
   const [deviceId, setDeviceId] = useState('')
   const videoRef = useRef<HTMLVideoElement>(null)
   const engine = () => {
-    if (!engineRef.current) throw new Error('Аудиоканал ещё подключается.')
+    if (!engineRef.current) throw new Error(t('error.audioConnecting'))
     return engineRef.current
   }
   useEffect(() => {
@@ -64,22 +68,27 @@ export function useTransport({
         return
       }
       if (!duration) {
-        setNotice('Сначала добавь медиа или начни запись.')
+        setNotice(t('notice.addMedia'))
         return
       }
+      setBusy(t('action.preparePlayback'))
+      setProgress(null)
       await engine().play(position >= duration ? 0 : position)
       setPlaying(true)
     } catch (reason) {
       showError(reason)
+    } finally {
+      setBusy('')
+      setProgress(null)
     }
   }
   const record = async () => {
     if (busy) return
     if (recording) {
-      setBusy('Сохраняю дубль…')
+      setBusy(t('action.saveTake'))
       try {
         await engine().stopRecording()
-        setNotice('Дубль сохранён без эффектов.')
+        setNotice(t('notice.takeSaved'))
       } catch (reason) {
         showError(reason)
       } finally {
@@ -92,10 +101,10 @@ export function useTransport({
       return
     }
     if (!armedTrack) {
-      setNotice('Включи R на одной звуковой дорожке.')
+      setNotice(t('error.armOneTrack'))
       return
     }
-    setBusy('Подключаю микрофон…')
+    setBusy(t('action.connectMicrophone'))
     try {
       await pause()
       await engine().prepareMicrophone(deviceId)

@@ -32,7 +32,7 @@ async fn health(State(state): State<StudioState>) -> impl IntoResponse {
     let store = state.store.try_lock();
     let details=store.ok().map(|store|json!({"workingDirectory":store.config.working_directory,"projectFile":store.config.project_file,"dirty":store.config.dirty}));
     axum::Json(
-        json!({"app":"simpleVoiceover","version":"0.2.0","pid":std::process::id(),"busy":details.is_none(),"project":details}),
+        json!({"app":"simpleVoiceover","version":env!("CARGO_PKG_VERSION"),"pid":std::process::id(),"busy":details.is_none(),"project":details}),
     )
 }
 fn same_origin(headers: &HeaderMap) -> bool {
@@ -64,7 +64,11 @@ async fn upgrade(
         return StatusCode::FORBIDDEN.into_response();
     }
     if state.connected.swap(true, Ordering::SeqCst) {
-        return (StatusCode::CONFLICT, "Студия уже открыта в другой вкладке").into_response();
+        return (
+            StatusCode::CONFLICT,
+            crate::i18n::message("error.alreadyOpen"),
+        )
+            .into_response();
     }
     ws.max_message_size(4 * 1024 * 1024 + 1)
         .max_frame_size(4 * 1024 * 1024 + 1)
@@ -171,7 +175,7 @@ async fn serve_region(
         if count == 0 {
             return Err(std::io::Error::new(
                 std::io::ErrorKind::UnexpectedEof,
-                "Неполное медиа",
+                crate::i18n::message("error.incompleteMedia"),
             ));
         }
         bytes.truncate(count);

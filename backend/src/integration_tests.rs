@@ -69,7 +69,11 @@ fn native_media_edit_save_playback_and_export_roundtrip() -> Result<()> {
         &json!({"command":"track_patch","trackId":track_id,"patch":{"volume":-3.}}),
     )?;
     assert!(store.root().starts_with(file.parent().unwrap()));
-    assert!(store.pcm(&store.project.assets[0].id).exists());
+    assert!(!store.pcm(&store.project.assets[0].id).exists());
+    let mut renderer = mixer::Mixer::new(&store)?;
+    let (samples, _) = renderer.block(&store.project, 10000, 1024, None, None)?;
+    assert!(samples.iter().flatten().any(|sample| sample.abs() > 0.01));
+    drop(renderer);
     store.save(&file)?;
     assert!(!store.root().exists());
     let restarted = Store::open(temporary.path().join("config"), None)?;

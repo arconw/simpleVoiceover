@@ -8,6 +8,8 @@ interface Actions {
   undo: () => void
   redo: () => void
   removeClip: () => void
+  copyClips: () => void
+  pasteClips: () => Promise<void>
   seek: (position: number) => void
   setTool: (tool: 'select' | 'split') => void
   blocked: boolean
@@ -26,6 +28,7 @@ export function useStudioShortcuts(actions: Actions) {
         return
       const shortcut = shortcutFor(event)
       if (!shortcut) return
+      if (shortcut === 'zoomIn' || shortcut === 'zoomOut') return
       event.preventDefault()
       if (event.repeat) return
       if (shortcut === 'play') void actions.play()
@@ -35,6 +38,8 @@ export function useStudioShortcuts(actions: Actions) {
       if (shortcut === 'undo') actions.undo()
       if (shortcut === 'redo') actions.redo()
       if (shortcut === 'delete') actions.removeClip()
+      if (shortcut === 'copy') actions.copyClips()
+      if (shortcut === 'paste') void actions.pasteClips()
       if (shortcut === 'home') actions.seek(0)
       if (shortcut === 'select' || shortcut === 'split') actions.setTool(shortcut)
     }

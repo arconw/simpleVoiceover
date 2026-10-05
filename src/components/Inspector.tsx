@@ -1,3 +1,4 @@
+import { localizedName, t } from '../i18n'
 import EffectsPanel from '../EffectsPanel'
 import FilesPanel from './FilesPanel'
 import MixerPanel from './MixerPanel'
@@ -8,11 +9,11 @@ export default function Inspector(panel: StudioController) {
     panel
   return (
     <aside className="inspector">
-      <div className="inspector-tabs" role="tablist" aria-label="Панели студии">
+      <div className="inspector-tabs" role="tablist" aria-label={t('inspector.panels')}>
         {[
-          ['files', 'Файлы'],
-          ['mixer', 'Микшер'],
-          ['effects', 'Эффекты'],
+          ['files', t('inspector.files')],
+          ['mixer', t('inspector.mixer')],
+          ['effects', t('inspector.effects')],
         ].map(([id, label]) => (
           <button key={id} role="tab" aria-selected={tab === id} onClick={() => setTab(id)}>
             {label}
@@ -21,8 +22,8 @@ export default function Inspector(panel: StudioController) {
         <button
           className="empty-tab"
           disabled
-          title="Резервная вкладка"
-          aria-label="Резервная вкладка"
+          title={t('inspector.reserved')}
+          aria-label={t('inspector.reserved')}
         />
       </div>
       <div className="inspector-body" role="tabpanel">
@@ -31,15 +32,15 @@ export default function Inspector(panel: StudioController) {
         {tab === 'effects' && (
           <>
             <div className="selected-track">
-              <span className="eyebrow">ДОРОЖКА</span>
+              <span className="eyebrow">{t('inspector.track')}</span>
               <select
-                aria-label="Дорожка для эффектов"
+                aria-label={t('inspector.effectsTrack')}
                 value={selectedTrackId}
                 onChange={(e) => setSelectedTrackId(e.target.value)}
               >
                 {tracks.map((t) => (
                   <option value={t.id} key={t.id}>
-                    {t.name}
+                    {localizedName(t.name)}
                   </option>
                 ))}
               </select>
@@ -48,13 +49,16 @@ export default function Inspector(panel: StudioController) {
             <EffectsPanel
               track={selectedTrack}
               onChange={(patch) => updateTrack(selectedTrack.id, patch)}
+              presets={panel.effectPresets}
+              onSavePreset={panel.savePreset}
+              operationPending={panel.operationPending}
             />
           </>
         )}
       </div>
       <div className="inspector-foot">
         <span className="small-dot" />
-        Локальная студия · Rust
+        {t('inspector.footer')}{' '}
       </div>
     </aside>
   )

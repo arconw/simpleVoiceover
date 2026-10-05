@@ -1,6 +1,8 @@
+import { localizedName, t } from '../i18n'
 import { Headphones, Mic, Pause, Play, SkipBack, Square } from 'lucide-react'
 import { formatTime } from '../types'
 import type { StudioController } from '../useStudio'
+import type { ReactNode } from 'react'
 
 type Props = Pick<
   StudioController,
@@ -17,7 +19,7 @@ type Props = Pick<
   | 'play'
   | 'record'
   | 'inputLevel'
->
+> & { preview: ReactNode }
 
 export default function Transport({
   position,
@@ -33,14 +35,15 @@ export default function Transport({
   play,
   record,
   inputLevel,
+  preview,
 }: Props) {
   return (
-    <section className="transport" aria-label="Воспроизведение и запись">
+    <section className="transport" aria-label={t('transport.controls')}>
       <div className="transport-controls">
         <button
           className="icon-button"
-          title="В начало · Home"
-          aria-label="В начало"
+          title={t('transport.homeTitle')}
+          aria-label={t('transport.home')}
           disabled={recording || !!busy}
           onClick={() => {
             void pause()
@@ -51,8 +54,8 @@ export default function Transport({
         </button>
         <button
           className="play-button"
-          title="Воспроизведение / пауза · Space"
-          aria-label={playing ? 'Пауза' : 'Воспроизвести'}
+          title={t('transport.playTitle')}
+          aria-label={playing ? t('transport.pause') : t('transport.play')}
           disabled={recording || !!busy}
           onClick={() => void play()}
         >
@@ -64,8 +67,8 @@ export default function Transport({
         </button>
         <button
           className="icon-button"
-          title="Стоп"
-          aria-label="Стоп"
+          title={t('transport.stop')}
+          aria-label={t('transport.stop')}
           disabled={!!busy}
           onClick={() => (recording ? void record() : void pause())}
         >
@@ -77,27 +80,31 @@ export default function Transport({
           onClick={() => void record()}
         >
           <span className="record-circle" />
-          {recording ? 'Стоп записи' : 'Запись'}
+          {recording ? t('transport.stopRecording') : t('transport.record')}
           <kbd>R</kbd>
         </button>
         <button
           className={`icon-button monitor-button ${monitor ? 'enabled' : ''}`}
-          aria-label="Мониторинг микрофона"
+          aria-label={t('transport.monitor')}
           aria-pressed={monitor}
-          title="Слышать микрофон в наушниках"
+          title={t('transport.monitorTitle')}
           onClick={() => setMonitor(!monitor)}
         >
           <Headphones size={15} />
         </button>
       </div>
+      {preview}
       <div className="transport-readout">
         <span className="time-display">
           {formatTime(position, true)}
           <span>/ {formatTime(duration, true)}</span>
         </span>
-        <span className="record-target" title={armedTrack?.name ?? 'Выбери дорожку R'}>
+        <span
+          className="record-target"
+          title={armedTrack ? localizedName(armedTrack.name) : t('transport.armHint')}
+        >
           <Mic size={13} />
-          <span className="mini-meter" aria-label="Уровень микрофона">
+          <span className="mini-meter" aria-label={t('transport.inputLevel')}>
             <i style={{ width: `${Math.min(100, inputLevel * 180)}%` }} />
           </span>
         </span>

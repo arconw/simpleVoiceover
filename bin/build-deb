@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+set -euo pipefail
+project_directory="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$project_directory"
+pkg-config --exists gtk+-3.0 webkit2gtk-4.1 javascriptcoregtk-4.1
+npm ci --no-audit --no-fund
+npm run build
+cd backend
+../node_modules/.bin/tauri build --features desktop --bundles deb -- --locked

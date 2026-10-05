@@ -1,3 +1,4 @@
+import { t } from './i18n'
 import { Upload } from 'lucide-react'
 import Timeline from './Timeline'
 import { useStudio } from './useStudio'
@@ -9,29 +10,45 @@ import Inspector from './components/Inspector'
 import HelpDialog from './components/HelpDialog'
 import CloseDialog from './components/CloseDialog'
 import Notice from './components/Notice'
+import WindowControls from './components/WindowControls'
+import PreviewInfo from './components/PreviewInfo'
+import SettingsDialog from './components/SettingsDialog'
+import { translateMessage } from './i18n'
 
 export default function App() {
   const studio = useStudio()
   if (!studio.selectedTrack)
     return (
-      <main className="studio connecting">
+      <main className="studio connecting" onContextMenu={(event) => event.preventDefault()}>
+        <WindowControls {...studio} />
         <h1>simpleVoiceover</h1>
-        <p>{studio.error || 'Подключаю локальную студию…'}</p>
+        <p>{studio.error ? translateMessage(studio.error) : t('studio.connecting')}</p>
+        {studio.confirmMode && <CloseDialog {...studio} />}
       </main>
     )
   return (
-    <main className={`studio ${studio.draggingFiles ? 'file-drag' : ''}`}>
+    <main
+      className={`studio ${studio.draggingFiles ? 'file-drag' : ''}`}
+      onContextMenu={(event) => event.preventDefault()}
+    >
       <StudioHeader {...studio} />
+      <WindowControls {...studio} />
       <section className="workspace-top">
         <Inspector {...studio} />
         <VideoPreview {...studio} />
       </section>
-      <Transport {...studio} />
       <Timeline
+        transport={<Transport {...studio} preview={<PreviewInfo {...studio} />} />}
         tracks={studio.tracks}
         assets={studio.assets}
         selectedTrackId={studio.selectedTrackId}
         selectedClipId={studio.selectedClipId}
+        selection={studio.selection}
+        onSelectRegion={studio.setSelection}
+        onMoveRegions={studio.moveRegions}
+        onCopy={studio.copyClips}
+        onPaste={() => void studio.pasteClips()}
+        canPaste={studio.canPaste}
         onSelectTrack={studio.setSelectedTrackId}
         onSelectClip={studio.setSelectedClipId}
         onUpdateTrack={studio.updateTrack}
@@ -41,6 +58,7 @@ export default function App() {
         position={studio.position}
         duration={studio.duration}
         recording={studio.recording}
+        operationPending={studio.operationPending}
         recordStart={studio.recordStart}
         tool={studio.tool}
         onToolChange={studio.setTool}
@@ -53,11 +71,12 @@ export default function App() {
       {studio.draggingFiles && (
         <div className="drop-overlay">
           <Upload size={40} />
-          <h2>Отпусти файлы здесь</h2>
-          <p>Видео и звук появятся на дорожках</p>
+          <h2>{t('drop.release')}</h2>
+          <p>{t('drop.description')}</p>
         </div>
       )}
       {studio.help && <HelpDialog {...studio} />}
+      {studio.settings && <SettingsDialog {...studio} />}
       {studio.confirmMode && <CloseDialog {...studio} />}
     </main>
   )
