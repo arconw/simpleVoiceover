@@ -36,16 +36,16 @@ It is a single native application. There is no FFmpeg to install, no console win
 
 <div align="center">
 
-[![Download for Windows](https://img.shields.io/badge/Download-Windows%20%C2%B7%20.exe-d8f593?style=for-the-badge&labelColor=222628&logo=windows&logoColor=d8f593)](https://github.com/arconw/simpleVoiceover/releases/download/v1.2.1/simpleVoiceover-v1.2.1.exe)
+[![Download for Windows](https://img.shields.io/badge/Download-Windows%20%C2%B7%20.exe-d8f593?style=for-the-badge&labelColor=222628&logo=data:image/svg%2bxml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0iI2Q4ZjU5MyI%2BPHBhdGggZD0iTTMgNS41bDcuNS0xdjdIM3pNMTEuNSA0LjNMMjEgM3Y4LjVoLTkuNXpNMyAxMi41aDcuNXY3TDMgMTguNXpNMTEuNSAxMi41SDIxVjIxbC05LjUtMS4zeiIvPjwvc3ZnPg%3D%3D)](https://github.com/arconw/simpleVoiceover/releases/download/v1.2.1/simpleVoiceover-v1.2.1.exe)
 &nbsp;
 [![Download for Linux](https://img.shields.io/badge/Download-Linux%20%C2%B7%20.deb-d8f593?style=for-the-badge&labelColor=222628&logo=linux&logoColor=d8f593)](https://github.com/arconw/simpleVoiceover/releases/download/v1.2.1/simpleVoiceover_1.2.1_amd64.deb)
 
 </div>
 
-| Platform                   | Package                           |    Size | Notes                                                |
-| -------------------------- | --------------------------------- | ------: | ---------------------------------------------------- |
-| **Windows**                | `simpleVoiceover-v1.2.1.exe`      | 15.9 MB | Single executable. Needs the WebView2 Runtime.       |
-| **Linux** (Debian, Ubuntu) | `simpleVoiceover_1.2.1_amd64.deb` |  6.2 MB | Needs WebKitGTK 4.1, GTK 3, GStreamer media plugins. |
+| Platform                   | Package                           |         Size | Notes                                                |
+| -------------------------- | --------------------------------- | -----------: | ---------------------------------------------------- |
+| **Windows**                | `simpleVoiceover-v1.2.1.exe`      | 15.9&nbsp;MB | Single executable. Needs the WebView2 Runtime.       |
+| **Linux** (Debian, Ubuntu) | `simpleVoiceover_1.2.1_amd64.deb` |  6.2&nbsp;MB | Needs WebKitGTK 4.1, GTK 3, GStreamer media plugins. |
 
 ```bash
 sudo apt install ./simpleVoiceover_1.2.1_amd64.deb
