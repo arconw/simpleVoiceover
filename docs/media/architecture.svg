@@ -1,0 +1,85 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="520" viewBox="0 0 1200 520" role="img" aria-labelledby="title desc">
+<title id="title">simpleVoiceover architecture</title>
+<desc id="desc">The React interface talks to the Rust engine over Tauri IPC for commands and events, over a binary WebSocket for audio, and over HTTP for media preview.</desc>
+<defs>
+<linearGradient id="background" x1="0" y1="0" x2="1" y2="1">
+<stop offset="0" stop-color="#0c0e0f"/>
+<stop offset="1" stop-color="#151a16"/>
+</linearGradient>
+<marker id="arrow-ipc" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M1 1l8 4-8 4z" fill="#d8f593"/></marker>
+<marker id="arrow-socket" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M1 1l8 4-8 4z" fill="#7aa7ff"/></marker>
+<marker id="arrow-http" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M1 1l8 4-8 4z" fill="#ffc86b"/></marker>
+<style>
+text{font-family:'Segoe UI','Inter',system-ui,-apple-system,'Helvetica Neue',Arial,sans-serif}
+.heading{font-size:22px;font-weight:700;fill:#f3f6ee}
+.subheading{font-size:14px;font-weight:500;fill:#8d978a}
+.chip{font-size:14px;font-weight:600;fill:#e8ece4}
+.lane{font-size:13px;font-weight:700;letter-spacing:1.4px}
+.label{font-size:12.5px;font-weight:500;fill:#9aa496}
+.note{font-size:15px;font-weight:500;fill:#aab4a6}
+.flow{stroke-dasharray:6 8;animation:flow 0.9s linear infinite}
+@keyframes flow{to{stroke-dashoffset:-14}}
+@media (prefers-reduced-motion:reduce){.flow{animation:none}}
+</style>
+</defs>
+<rect width="1200" height="520" rx="24" fill="url(#background)"/>
+<rect x="0.5" y="0.5" width="1199" height="519" rx="23.5" fill="none" stroke="#2a312b"/>
+
+<rect x="40" y="40" width="400" height="390" rx="20" fill="#10161f" stroke="#3b5a93" stroke-width="1.5"/>
+<text class="heading" x="64" y="80" fill="#9db9ee" style="fill:#9db9ee">Interface</text>
+<text class="subheading" x="64" y="106">React 19 · TypeScript · Vite</text>
+<text class="subheading" x="64" y="128">WebView2 on Windows · WebKitGTK 4.1 on Linux</text>
+<g>
+<rect x="64" y="158" width="172" height="40" rx="12" fill="#17233a" stroke="#3b5a93"/><text class="chip" x="150" y="183" text-anchor="middle">components</text>
+<rect x="252" y="158" width="172" height="40" rx="12" fill="#17233a" stroke="#3b5a93"/><text class="chip" x="338" y="183" text-anchor="middle">timeline</text>
+<rect x="64" y="212" width="172" height="40" rx="12" fill="#17233a" stroke="#3b5a93"/><text class="chip" x="150" y="237" text-anchor="middle">hooks</text>
+<rect x="252" y="212" width="172" height="40" rx="12" fill="#17233a" stroke="#3b5a93"/><text class="chip" x="338" y="237" text-anchor="middle">StudioClient</text>
+<rect x="64" y="266" width="360" height="40" rx="12" fill="#1c2c4a" stroke="#7aa7ff"/><text class="chip" x="244" y="291" text-anchor="middle">AudioWorklet · capture and playback</text>
+</g>
+<text class="subheading" x="64" y="338">The interface renders state.</text>
+<text class="subheading" x="64" y="360">It never decodes, mixes or stores audio.</text>
+
+<rect x="760" y="40" width="400" height="390" rx="20" fill="#1b1211" stroke="#a24f45" stroke-width="1.5"/>
+<text class="heading" x="784" y="80" style="fill:#f4a79d">Engine</text>
+<text class="subheading" x="784" y="106">Rust · Tauri 2 · Axum</text>
+<text class="subheading" x="784" y="128">Owns every byte of audio and every project file</text>
+<g>
+<rect x="784" y="158" width="172" height="40" rx="12" fill="#2b1816" stroke="#a24f45"/><text class="chip" x="870" y="183" text-anchor="middle">decode · Symphonia</text>
+<rect x="972" y="158" width="172" height="40" rx="12" fill="#2b1816" stroke="#a24f45"/><text class="chip" x="1058" y="183" text-anchor="middle">effects · DSP</text>
+<rect x="784" y="212" width="172" height="40" rx="12" fill="#2b1816" stroke="#a24f45"/><text class="chip" x="870" y="237" text-anchor="middle">loudness · EBU R128</text>
+<rect x="972" y="212" width="172" height="40" rx="12" fill="#2b1816" stroke="#a24f45"/><text class="chip" x="1058" y="237" text-anchor="middle">mixer · pan · gain</text>
+<rect x="784" y="266" width="172" height="40" rx="12" fill="#2b1816" stroke="#a24f45"/><text class="chip" x="870" y="291" text-anchor="middle">editing · regions</text>
+<rect x="972" y="266" width="172" height="40" rx="12" fill="#2b1816" stroke="#a24f45"/><text class="chip" x="1058" y="291" text-anchor="middle">storage · .justspeak</text>
+<rect x="784" y="320" width="172" height="40" rx="12" fill="#2b1816" stroke="#a24f45"/><text class="chip" x="870" y="345" text-anchor="middle">export · WAV · MP3</text>
+<rect x="972" y="320" width="172" height="40" rx="12" fill="#2b1816" stroke="#a24f45"/><text class="chip" x="1058" y="345" text-anchor="middle">progress · i18n</text>
+</g>
+
+<text class="lane" x="600" y="86" text-anchor="middle" fill="#d8f593">TAURI IPC</text>
+<text class="label" x="600" y="110" text-anchor="middle">studio_command</text>
+<path class="flow" d="M448 120H752" stroke="#d8f593" stroke-width="2" fill="none" marker-end="url(#arrow-ipc)"/>
+<path class="flow" d="M752 152H448" stroke="#d8f593" stroke-width="2" fill="none" marker-end="url(#arrow-ipc)"/>
+<text class="label" x="600" y="174" text-anchor="middle">studio-snapshot · studio-progress</text>
+<circle r="4.5" fill="#d8f593"><animateMotion dur="2.6s" repeatCount="indefinite" path="M448 120H752"/></circle>
+<circle r="4.5" fill="#d8f593"><animateMotion dur="2.6s" begin="-1.3s" repeatCount="indefinite" path="M448 120H752"/></circle>
+<circle r="4.5" fill="#d8f593"><animateMotion dur="3.2s" begin="-0.6s" repeatCount="indefinite" path="M752 152H448"/></circle>
+<circle r="4.5" fill="#d8f593"><animateMotion dur="3.2s" begin="-2.2s" repeatCount="indefinite" path="M752 152H448"/></circle>
+
+<text class="lane" x="600" y="226" text-anchor="middle" fill="#7aa7ff">WEBSOCKET  /ws</text>
+<text class="label" x="600" y="250" text-anchor="middle">microphone input · acknowledgements</text>
+<path class="flow" d="M448 260H752" stroke="#7aa7ff" stroke-width="2" fill="none" marker-end="url(#arrow-socket)"/>
+<path class="flow" d="M752 292H448" stroke="#7aa7ff" stroke-width="2" fill="none" marker-end="url(#arrow-socket)"/>
+<text class="label" x="600" y="314" text-anchor="middle">binary PCM for playback</text>
+<circle r="4.5" fill="#7aa7ff"><animateMotion dur="1.8s" repeatCount="indefinite" path="M448 260H752"/></circle>
+<circle r="4.5" fill="#7aa7ff"><animateMotion dur="1.8s" begin="-0.9s" repeatCount="indefinite" path="M448 260H752"/></circle>
+<circle r="4.5" fill="#7aa7ff"><animateMotion dur="1.5s" begin="-0.3s" repeatCount="indefinite" path="M752 292H448"/></circle>
+<circle r="4.5" fill="#7aa7ff"><animateMotion dur="1.5s" begin="-0.8s" repeatCount="indefinite" path="M752 292H448"/></circle>
+<circle r="4.5" fill="#7aa7ff"><animateMotion dur="1.5s" begin="-1.2s" repeatCount="indefinite" path="M752 292H448"/></circle>
+
+<text class="lane" x="600" y="352" text-anchor="middle" fill="#ffc86b">HTTP  /media/{id}</text>
+<path class="flow" d="M752 380H448" stroke="#ffc86b" stroke-width="2" fill="none" marker-end="url(#arrow-http)"/>
+<text class="label" x="600" y="402" text-anchor="middle">video preview with Range requests</text>
+<circle r="4.5" fill="#ffc86b"><animateMotion dur="2.2s" begin="-0.4s" repeatCount="indefinite" path="M752 380H448"/></circle>
+<circle r="4.5" fill="#ffc86b"><animateMotion dur="2.2s" begin="-1.5s" repeatCount="indefinite" path="M752 380H448"/></circle>
+
+<text class="note" x="600" y="474" text-anchor="middle">Binary audio never travels over IPC, and project control never travels over HTTP.</text>
+</svg>

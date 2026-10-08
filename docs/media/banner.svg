@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="380" viewBox="0 0 1280 380" role="img" aria-labelledby="title desc">
+<title id="title">simpleVoiceover</title>
+<desc id="desc">A voiceover studio. Picture. Voice. Everything on its own track.</desc>
+<defs>
+<linearGradient id="background" x1="0" y1="0" x2="1" y2="1">
+<stop offset="0" stop-color="#0c0e0f"/>
+<stop offset="1" stop-color="#171d18"/>
+</linearGradient>
+<radialGradient id="glow" cx="0.72" cy="0.5" r="0.55">
+<stop offset="0" stop-color="#d8f593" stop-opacity="0.22"/>
+<stop offset="1" stop-color="#d8f593" stop-opacity="0"/>
+</radialGradient>
+<linearGradient id="accent" x1="0" y1="0" x2="1" y2="0">
+<stop offset="0" stop-color="#b9e36a"/>
+<stop offset="1" stop-color="#e9ffb0"/>
+</linearGradient>
+<clipPath id="played">
+<rect x="694" y="0" width="0" height="380">
+<animate attributeName="width" values="0;526;526" keyTimes="0;0.86;1" dur="7s" repeatCount="indefinite"/>
+</rect>
+</clipPath>
+<style>
+.title{font:700 62px 'Segoe UI','Inter',system-ui,-apple-system,'Helvetica Neue',Arial,sans-serif;fill:#f3f6ee;letter-spacing:-1.5px}
+.tagline{font:600 25px 'Segoe UI','Inter',system-ui,-apple-system,'Helvetica Neue',Arial,sans-serif;fill:#d8f593}
+.meta{font:500 18px 'Segoe UI','Inter',system-ui,-apple-system,'Helvetica Neue',Arial,sans-serif;fill:#8d978a;letter-spacing:0.4px}
+.idle{fill:#2c332d}
+.live{fill:url(#accent);transform-box:fill-box;transform-origin:center;animation:pulse 1.6s ease-in-out infinite}
+.logo-bar{animation:logo 2.4s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
+@keyframes pulse{0%,100%{transform:scaleY(0.82)}50%{transform:scaleY(1.06)}}
+@keyframes logo{0%,100%{transform:scaleY(0.7)}50%{transform:scaleY(1)}}
+@media (prefers-reduced-motion:reduce){.live,.logo-bar{animation:none}}
+</style>
+</defs>
+<rect width="1280" height="380" rx="28" fill="url(#background)"/>
+<rect width="1280" height="380" rx="28" fill="url(#glow)"/>
+<rect x="0.5" y="0.5" width="1279" height="379" rx="27.5" fill="none" stroke="#2a312b"/>
+<g transform="translate(80 44)">
+<rect width="104" height="104" rx="26" fill="#222628" stroke="#343b36"/>
+<g stroke="#d8f593" stroke-width="10" stroke-linecap="round">
+<path class="logo-bar" style="animation-delay:-0.2s" d="M26 44v16"/>
+<path class="logo-bar" style="animation-delay:-0.9s" d="M44 26v52"/>
+<path class="logo-bar" style="animation-delay:-1.5s" d="M62 36v32"/>
+<path class="logo-bar" style="animation-delay:-0.5s" d="M80 46v12"/>
+</g>
+</g>
+<text class="title" x="80" y="218">simpleVoiceover</text>
+<text class="tagline" x="80" y="264">Picture. Voice. Everything on its own track.</text>
+<text class="meta" x="80" y="306">Voiceover studio for Windows and Linux  ·  Tauri  ·  Rust  ·  React</text>
+<line x1="700" y1="190" x2="1214" y2="190" stroke="#2c332d" stroke-width="2" stroke-dasharray="2 8" stroke-linecap="round"/>
+<rect class="idle" x="700" y="175.5" width="7" height="29" rx="3.5"/><rect class="idle" x="713" y="162" width="7" height="56" rx="3.5"/><rect class="idle" x="726" y="169.5" width="7" height="41" rx="3.5"/><rect class="idle" x="739" y="169" width="7" height="42" rx="3.5"/><rect class="idle" x="752" y="162" width="7" height="56" rx="3.5"/><rect class="idle" x="765" y="150.5" width="7" height="79" rx="3.5"/><rect class="idle" x="778" y="147.5" width="7" height="85" rx="3.5"/><rect class="idle" x="791" y="149" width="7" height="82" rx="3.5"/><rect class="idle" x="804" y="149.5" width="7" height="81" rx="3.5"/><rect class="idle" x="817" y="157" width="7" height="66" rx="3.5"/><rect class="idle" x="830" y="141.5" width="7" height="97" rx="3.5"/><rect class="idle" x="843" y="151" width="7" height="78" rx="3.5"/><rect class="idle" x="856" y="123.5" width="7" height="133" rx="3.5"/><rect class="idle" x="869" y="149.5" width="7" height="81" rx="3.5"/><rect class="idle" x="882" y="138.5" width="7" height="103" rx="3.5"/><rect class="idle" x="895" y="149.5" width="7" height="81" rx="3.5"/><rect class="idle" x="908" y="133" width="7" height="114" rx="3.5"/><rect class="idle" x="921" y="131.5" width="7" height="117" rx="3.5"/><rect class="idle" x="934" y="124.5" width="7" height="131" rx="3.5"/><rect class="idle" x="947" y="128" width="7" height="124" rx="3.5"/><rect class="idle" x="960" y="142" width="7" height="96" rx="3.5"/><rect class="idle" x="973" y="145" width="7" height="90" rx="3.5"/><rect class="idle" x="986" y="143" width="7" height="94" rx="3.5"/><rect class="idle" x="999" y="119.5" width="7" height="141" rx="3.5"/><rect class="idle" x="1012" y="149" width="7" height="82" rx="3.5"/><rect class="idle" x="1025" y="127" width="7" height="126" rx="3.5"/><rect class="idle" x="1038" y="150" width="7" height="80" rx="3.5"/><rect class="idle" x="1051" y="148.5" width="7" height="83" rx="3.5"/><rect class="idle" x="1064" y="146.5" width="7" height="87" rx="3.5"/><rect class="idle" x="1077" y="135" width="7" height="110" rx="3.5"/><rect class="idle" x="1090" y="140.5" width="7" height="99" rx="3.5"/><rect class="idle" x="1103" y="147.5" width="7" height="85" rx="3.5"/><rect class="idle" x="1116" y="155" width="7" height="70" rx="3.5"/><rect class="idle" x="1129" y="161" width="7" height="58" rx="3.5"/><rect class="idle" x="1142" y="152" width="7" height="76" rx="3.5"/><rect class="idle" x="1155" y="163.5" width="7" height="53" rx="3.5"/><rect class="idle" x="1168" y="152.5" width="7" height="75" rx="3.5"/><rect class="idle" x="1181" y="170.5" width="7" height="39" rx="3.5"/><rect class="idle" x="1194" y="169.5" width="7" height="41" rx="3.5"/><rect class="idle" x="1207" y="174.5" width="7" height="31" rx="3.5"/>
+<g clip-path="url(#played)"><rect class="live" x="700" y="175.5" width="7" height="29" rx="3.5" style="animation-duration:1.10s;animation-delay:-0.00s"/><rect class="live" x="713" y="162" width="7" height="56" rx="3.5" style="animation-duration:1.27s;animation-delay:-0.23s"/><rect class="live" x="726" y="169.5" width="7" height="41" rx="3.5" style="animation-duration:1.44s;animation-delay:-0.46s"/><rect class="live" x="739" y="169" width="7" height="42" rx="3.5" style="animation-duration:1.61s;animation-delay:-0.69s"/><rect class="live" x="752" y="162" width="7" height="56" rx="3.5" style="animation-duration:1.78s;animation-delay:-0.92s"/><rect class="live" x="765" y="150.5" width="7" height="79" rx="3.5" style="animation-duration:1.95s;animation-delay:-1.15s"/><rect class="live" x="778" y="147.5" width="7" height="85" rx="3.5" style="animation-duration:2.12s;animation-delay:-1.38s"/><rect class="live" x="791" y="149" width="7" height="82" rx="3.5" style="animation-duration:1.10s;animation-delay:-1.61s"/><rect class="live" x="804" y="149.5" width="7" height="81" rx="3.5" style="animation-duration:1.27s;animation-delay:-1.84s"/><rect class="live" x="817" y="157" width="7" height="66" rx="3.5" style="animation-duration:1.44s;animation-delay:-0.07s"/><rect class="live" x="830" y="141.5" width="7" height="97" rx="3.5" style="animation-duration:1.61s;animation-delay:-0.30s"/><rect class="live" x="843" y="151" width="7" height="78" rx="3.5" style="animation-duration:1.78s;animation-delay:-0.53s"/><rect class="live" x="856" y="123.5" width="7" height="133" rx="3.5" style="animation-duration:1.95s;animation-delay:-0.76s"/><rect class="live" x="869" y="149.5" width="7" height="81" rx="3.5" style="animation-duration:2.12s;animation-delay:-0.99s"/><rect class="live" x="882" y="138.5" width="7" height="103" rx="3.5" style="animation-duration:1.10s;animation-delay:-1.22s"/><rect class="live" x="895" y="149.5" width="7" height="81" rx="3.5" style="animation-duration:1.27s;animation-delay:-1.45s"/><rect class="live" x="908" y="133" width="7" height="114" rx="3.5" style="animation-duration:1.44s;animation-delay:-1.68s"/><rect class="live" x="921" y="131.5" width="7" height="117" rx="3.5" style="animation-duration:1.61s;animation-delay:-1.91s"/><rect class="live" x="934" y="124.5" width="7" height="131" rx="3.5" style="animation-duration:1.78s;animation-delay:-0.14s"/><rect class="live" x="947" y="128" width="7" height="124" rx="3.5" style="animation-duration:1.95s;animation-delay:-0.37s"/><rect class="live" x="960" y="142" width="7" height="96" rx="3.5" style="animation-duration:2.12s;animation-delay:-0.60s"/><rect class="live" x="973" y="145" width="7" height="90" rx="3.5" style="animation-duration:1.10s;animation-delay:-0.83s"/><rect class="live" x="986" y="143" width="7" height="94" rx="3.5" style="animation-duration:1.27s;animation-delay:-1.06s"/><rect class="live" x="999" y="119.5" width="7" height="141" rx="3.5" style="animation-duration:1.44s;animation-delay:-1.29s"/><rect class="live" x="1012" y="149" width="7" height="82" rx="3.5" style="animation-duration:1.61s;animation-delay:-1.52s"/><rect class="live" x="1025" y="127" width="7" height="126" rx="3.5" style="animation-duration:1.78s;animation-delay:-1.75s"/><rect class="live" x="1038" y="150" width="7" height="80" rx="3.5" style="animation-duration:1.95s;animation-delay:-1.98s"/><rect class="live" x="1051" y="148.5" width="7" height="83" rx="3.5" style="animation-duration:2.12s;animation-delay:-0.21s"/><rect class="live" x="1064" y="146.5" width="7" height="87" rx="3.5" style="animation-duration:1.10s;animation-delay:-0.44s"/><rect class="live" x="1077" y="135" width="7" height="110" rx="3.5" style="animation-duration:1.27s;animation-delay:-0.67s"/><rect class="live" x="1090" y="140.5" width="7" height="99" rx="3.5" style="animation-duration:1.44s;animation-delay:-0.90s"/><rect class="live" x="1103" y="147.5" width="7" height="85" rx="3.5" style="animation-duration:1.61s;animation-delay:-1.13s"/><rect class="live" x="1116" y="155" width="7" height="70" rx="3.5" style="animation-duration:1.78s;animation-delay:-1.36s"/><rect class="live" x="1129" y="161" width="7" height="58" rx="3.5" style="animation-duration:1.95s;animation-delay:-1.59s"/><rect class="live" x="1142" y="152" width="7" height="76" rx="3.5" style="animation-duration:2.12s;animation-delay:-1.82s"/><rect class="live" x="1155" y="163.5" width="7" height="53" rx="3.5" style="animation-duration:1.10s;animation-delay:-0.05s"/><rect class="live" x="1168" y="152.5" width="7" height="75" rx="3.5" style="animation-duration:1.27s;animation-delay:-0.28s"/><rect class="live" x="1181" y="170.5" width="7" height="39" rx="3.5" style="animation-duration:1.44s;animation-delay:-0.51s"/><rect class="live" x="1194" y="169.5" width="7" height="41" rx="3.5" style="animation-duration:1.61s;animation-delay:-0.74s"/><rect class="live" x="1207" y="174.5" width="7" height="31" rx="3.5" style="animation-duration:1.78s;animation-delay:-0.97s"/></g>
+<g>
+<line x1="0" y1="52" x2="0" y2="328" stroke="#f3f6ee" stroke-width="2" stroke-linecap="round" opacity="0.9"/>
+<path d="M-7 44h14l-7 11z" fill="#f3f6ee"/>
+<animateTransform attributeName="transform" type="translate" values="694 0;1220 0;1220 0" keyTimes="0;0.86;1" dur="7s" repeatCount="indefinite"/>
+</g>
+</svg>

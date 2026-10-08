@@ -1,95 +1,222 @@
-# simpleVoiceover
+<div align="center">
 
-A voiceover studio for Windows and Linux, version 1.2.1, built with Tauri, React, and Rust. Windows uses WebView2; Linux uses WebKitGTK 4.1. The app window owns the engine lifecycle; no separate console, FFmpeg, or external media service is required.
+<img src="docs/media/banner.svg" alt="simpleVoiceover — Picture. Voice. Everything on its own track." width="100%">
 
-## Run and build
+<br>
 
-Sources live in `/home/arcon/dev/my/tools/simpleVoiceover` under Ubuntu-26.04. The Windows executable is `D:\devw\my\tools\simpleVoiceover\simpleVoiceover-v1.2.1.exe`. Previous executables are preserved; `svoice start` prefers v1.2.1 when available.
+[![Version](https://img.shields.io/badge/version-1.2.1-d8f593?style=flat-square&labelColor=222628)](https://github.com/arconw/simpleVoiceover/releases)
+[![Platforms](https://img.shields.io/badge/platform-Windows%20%7C%20Linux-d8f593?style=flat-square&labelColor=222628)](#download)
+[![Built with](https://img.shields.io/badge/built%20with-Tauri%20%C2%B7%20Rust%20%C2%B7%20React-d8f593?style=flat-square&labelColor=222628)](#under-the-hood)
+[![Languages](https://img.shields.io/badge/languages-13-d8f593?style=flat-square&labelColor=222628)](#features)
+[![License](https://img.shields.io/badge/license-MIT-d8f593?style=flat-square&labelColor=222628)](LICENSE)
+
+**[Download](#download)** · **[Features](#features)** · **[Under the hood](#under-the-hood)** · **[Build](#build-from-source)** · **[Manual](docs/MANUAL.md)** · **[YouTube](https://www.youtube.com/@arco9-lab)**
+
+<br>
+
+<img src="docs/media/demo.gif" alt="simpleVoiceover demo: import media, split and record a voice track, shape it with effects, balance it in the mixer" width="100%">
+
+<sub>Real app, real recording: import, cut, shape the voice, balance the mix.</sub>
+
+<br>
+<br>
+
+<a href="https://www.youtube.com/@arco9-lab"><img src="docs/media/channel-icon.png" alt="Arco9 Lab" width="30" align="absmiddle"></a>&nbsp;
+<a href="https://www.youtube.com/@arco9-lab"><b>Videos and updates on the Arco9 Lab YouTube channel</b></a>
+
+</div>
+
+<br>
+
+simpleVoiceover is a small desktop studio for recording a voice over a video. Drop in a clip, put on headphones, press <kbd>R</kbd>, and talk. Picture, voice and music each live on their own track, so you can cut, move, mute and polish them without touching the originals.
+
+It is a single native application. There is no FFmpeg to install, no console window, and no background media service to babysit: the Rust engine decodes, processes, mixes and exports everything itself.
+
+## Download
+
+<div align="center">
+
+[![Download for Windows](https://img.shields.io/badge/Download-Windows%20%C2%B7%20.exe-d8f593?style=for-the-badge&labelColor=222628&logo=windows&logoColor=d8f593)](https://github.com/arconw/simpleVoiceover/releases/download/v1.2.1/simpleVoiceover-v1.2.1.exe)
+&nbsp;
+[![Download for Linux](https://img.shields.io/badge/Download-Linux%20%C2%B7%20.deb-d8f593?style=for-the-badge&labelColor=222628&logo=linux&logoColor=d8f593)](https://github.com/arconw/simpleVoiceover/releases/download/v1.2.1/simpleVoiceover_1.2.1_amd64.deb)
+
+</div>
+
+| Platform                   | Package                           |    Size | Notes                                                |
+| -------------------------- | --------------------------------- | ------: | ---------------------------------------------------- |
+| **Windows**                | `simpleVoiceover-v1.2.1.exe`      | 15.9 MB | Single executable. Needs the WebView2 Runtime.       |
+| **Linux** (Debian, Ubuntu) | `simpleVoiceover_1.2.1_amd64.deb` |  6.2 MB | Needs WebKitGTK 4.1, GTK 3, GStreamer media plugins. |
 
 ```bash
-svoice start
-svoice status
-svoice logs
-svoice stop
-svoice help
+sudo apt install ./simpleVoiceover_1.2.1_amd64.deb
+simpleVoiceover
 ```
 
-`stop` requests a normal window close. Unsaved changes require saving, discarding, or canceling in the app. Recording and ongoing file operations prevent closing. Closing the window shuts down the embedded HTTP server and audio channel.
+All versions are listed on the [Releases](https://github.com/arconw/simpleVoiceover/releases) page.
 
-Build Windows from WSL:
+<details>
+<summary>Linux details and WSL</summary>
 
-```bash
-bin/build-windows
-```
+<br>
 
-Requires Node.js, Rust, the `x86_64-pc-windows-msvc` target, cargo-xwin, and the LLVM resource compiler `llvm-rc`. The script uses an installed LLVM or the local `.build-tools/llvm` toolchain. Windows requires WebView2 Runtime. The build script writes a versioned executable and refuses to overwrite an existing output.
+The Debian package inherits the minimum library versions of the Ubuntu system it was built on, so build on the oldest distribution you intend to support. File dialogs go through the XDG desktop portal. Under WSL you need WSLg for a visible window and its PulseAudio bridge for sound.
 
-Build a Debian package on Ubuntu:
+</details>
 
-```bash
-sudo apt install build-essential pkg-config libwebkit2gtk-4.1-dev librsvg2-dev
-bin/build-deb
-```
+## Features
 
-The package is generated in `backend/target/release/bundle/deb`. Install it with `sudo apt install ./path/to/simpleVoiceover_1.2.1_amd64.deb`, then launch `simpleVoiceover`. Runtime dependencies include WebKitGTK 4.1, GTK 3, desktop file chooser portals, and GStreamer media plugins. File dialogs use the XDG desktop portal on Linux. WSL requires WSLg for a visible window and its PulseAudio bridge for sound. This package inherits the minimum library versions of the Ubuntu system used to build it; build on the oldest distribution you intend to support.
+<table>
+<tr>
+<td width="50%" valign="top">
 
-## Editing
+**🎞️ Multitrack timeline**<br>
+Video audio, your voice and music sit on separate tracks. Split with 48 kHz sample accuracy, drag clips between tracks, select intervals across several tracks, copy and paste sections, and undo anything.
 
-The menu on the left contains import, open, save, working directory, export, settings, and help. The central toolbar above the tracks contains editing tools, playback and recording controls, preview details, the timer, microphone level, and zoom. Preview labels and filenames truncate to the available width; the extension stays visible, and hover reveals the full name.
+</td>
+<td width="50%" valign="top">
 
-The window has no system title bar. Minimize, maximize, and close controls are in the upper right corner. Close retains recording and unsaved-change protection. Drag the window by its video area; the cursor indicates dragging. Context menus and ordinary text selection are disabled; input text can still be selected.
+**🎙️ Record over the picture**<br>
+Arm one track, press <kbd>R</kbd>, and record at the playhead while the other tracks play. Takes are stored raw; effects are applied during playback and export, so you can change your mind later.
 
-Double-click the video to toggle fullscreen preview. Escape exits fullscreen. Window dragging starts after pointer movement, so a stationary double-click does not move the window.
+</td>
+</tr>
+<tr>
+<td valign="top">
 
-Each file has two buttons. Add places a clip on the selected track at the playhead. Remove removes the asset and all its clips from the project. Undo restores removal; unlock any track using the asset before removing it. The original source on disk is retained.
+**🎛️ Voice effects chain**<br>
+High-pass, equalizer, presence, low-pass, an RMS compressor and a soft expander, with presets such as Natural voice, Podcast and Noisy room. Save your own presets. Every slider has a `?` that explains it with a small schematic.
 
-Clip movement and trimming use a local preview and commit once on release. The preview remains in place until the engine confirms the edit, avoiding a jump back to the old position. Operations show a loader near the top of the video only after 300 ms; quick edits do not flash operation messages or controls.
+</td>
+<td valign="top">
 
-Import through a native file dialog or drag and drop. Rust reads local disks directly. The source-file limit is 100,000,000,000 bytes. Import combines copying and decoding: repeated reads and backward seeks use already copied regions, and skipped video bytes are copied before completion. Seeking to an MP4 index at the end does not copy the preceding file first. Import and saving report progress. Rust owns decoding, waveform generation, effects, editing, and export. Large media is streamed; decoded PCM can exceed the source size.
+**📏 Loudness normalization**<br>
+EBU R128 measurement with oversampled true peaks aims at −16 LUFS and a −1.5 dBTP ceiling by default. Both targets are adjustable, and the measurement is cached, so editing a fader never re-analyzes the audio.
 
-Symphonia supports AAC-LC, MP3, WAV, FLAC, ALAC, and Vorbis. Opus is not supported yet. WebView2 displays the original video; visual playback depends on codec support. Files without decodable audio cannot be imported. Export produces audio.
+</td>
+</tr>
+<tr>
+<td valign="top">
 
-Only one audio track can be armed for microphone recording. Recording starts at the playhead while the other tracks play. Finishing a take stops playback. Original takes are stored without effects; processing is applied during playback and export.
+**🎚️ Mixer and export**<br>
+Volume, pan, mute and solo per track. Export a single track or the whole mix as WAV (16-bit stereo, 48 kHz, RF64 for huge files) or MP3 (256 kbps).
 
-Lock protects clip editing while allowing recording, mixer changes, and effects. Mute affects playback; it does not mute the recorded input. Split at a click or the playhead with 48 kHz sample accuracy. Drag the middle of the lower scrollbar to pan, or its edges to zoom. The scrollbar handle has a minimum width of 60 px.
+</td>
+<td valign="top">
 
-Hold the middle mouse button over a track and drag horizontally to pan the timeline. Add track creates an unarmed audio track. Voice clips can move to audio tracks; video clips stay on video tracks. Locked source or destination tracks prevent moving clips.
+**📦 One portable project file**<br>
+A `.justspeak` project holds sources, takes, waveforms and edits in a single indexed file. Saves are incremental and crash-safe, so a volume tweak does not rewrite your media.
 
-Drag through empty track space, or hold Shift and drag over clips, to select a time interval across several tracks. Ctrl+click toggles whole clips in a group. Ctrl+C copies selected sections with their source offsets, spacing, and relative track positions. Ctrl+V pastes at the playhead, starting on the selected track; enough compatible, unlocked destination tracks must exist. Copying retains references to the existing media and does not duplicate audio files. Drag a selected clip or the narrow top edge of the selection to move the group. Moving or deleting an interval preserves audio outside that interval and creates one Undo step. The internal clipboard belongs to the current project.
+</td>
+</tr>
+<tr>
+<td valign="top">
 
-## Language and application preferences
+**🌍 13 interface languages**<br>
+English, Russian, French, Polish, Spanish, Portuguese, German, Italian, Ukrainian, Turkish, Japanese, Korean and Simplified Chinese. Switching applies immediately.
 
-Settings contains the interface language selector. The default follows the operating system language exposed by WebView2, with English as the fallback. Available languages: English (`en`), Russian (`ru`), French (`fr`), Polish (`pl`), Spanish (`es`), Portuguese (`pt`), German (`de`), Italian (`it`), Ukrainian (`uk`), Turkish (`tr`), Japanese (`ja`), Korean (`ko`), and Simplified Chinese (`zh-CN`). All use left-to-right layout.
+</td>
+<td valign="top">
 
-Language changes apply immediately. Preferences are saved independently of projects in `%LOCALAPPDATA%\simpleVoiceover\settings.json` on Windows. Headless Linux uses `~/.local/share/simpleVoiceover`; `--config-dir` overrides the directory. Opening, saving, or moving a project does not replace the language preference.
+**🧱 Built for big files**<br>
+Source files up to 100 GB are streamed from disk with 64-bit offsets. Import copies and decodes in a single pass, and AAC-LC, MP3, WAV, FLAC, ALAC and Vorbis are supported.
 
-Shared translation catalogs live in `src/locales`. English is complete and supplies runtime fallback for missing or empty entries. Rust errors and progress carry localization keys and parameters; the UI translates them. Native file dialogs use the same catalogs. Default project and track names are stored as keys, while custom names and source filenames remain user data. Legacy default Russian names are recognized through the Russian catalog. Update every catalog when adding a key. Tests check key parity, parameter parity, complete values, key references, and the absence of Cyrillic text outside localization files.
+</td>
+</tr>
+</table>
 
-## Project storage and cache
+## A look around
 
-A `.justspeak` v3 project is one portable indexed file, without compression. It includes source media, recordings, PCM cache, waveforms, edits, and track settings. Version 1.2 opens older ZIP64 v2 projects and migrates them when saving changes. The initial migration copies media once. Version 3 projects require v1.2 or a newer compatible application.
+<div align="center">
 
-- Before the first save, the cache is in the chosen working directory, defaulting to `%TEMP%\simpleVoiceover`.
-- After saving, changes create a `.simpleVoiceover-<UUID>` directory beside the project. It contains a change manifest and only new media or takes. Saved media is read directly from the project during editing.
-- Ctrl+S appends new media, edits, and an index while reusing existing media regions. Saving edits does not copy audio or video. External cache and Undo/Redo history are cleared after a successful save.
-- The index is read once when opening. Playback, HTTP Range, and export use 64-bit offsets without extraction.
-- Two alternating pointers with CRC32 protect save commits. Data and the index are synced before updating a pointer. Incomplete appends are ignored; a damaged new revision leaves the previous intact revision accessible.
-- Ordinary saves retain old manifests and removed media inside the file. Save as compacts only current data, including when choosing the same path, and atomically replaces the destination.
-- An unfinished session is recovered at startup. Closing without saving discards its changes and removes its owned temporary cache.
+<img src="docs/media/studio.png" alt="The studio window: project media on the left, video preview on the right, and three tracks with waveforms below" width="100%">
 
-## Export and effects
+<br>
+<br>
 
-Export a track or the mix through a native dialog as WAV or MP3. WAV uses stereo 16-bit PCM at 48 kHz, with RF64 for large files. MP3 uses stereo 256 kbps at 48 kHz through shine-rs. Individual track export ignores mute/solo and preserves leading silence for alignment. Mix export respects mute/solo. Both apply edits, effects, volume, and pan.
+<table>
+<tr>
+<td align="center"><img src="docs/media/effects.png" alt="Effects panel with the Natural voice preset and an equalizer" width="410"></td>
+<td align="center"><img src="docs/media/mixer.png" alt="Mixer panel with volume, pan, mute, solo and export per track" width="410"></td>
+</tr>
+<tr>
+<td align="center"><sub><b>Effects</b> — presets, equalizer, compressor</sub></td>
+<td align="center"><sub><b>Mixer</b> — volume, pan, solo, per-track export</sub></td>
+</tr>
+</table>
 
-The Effects tab offers Natural voice, Neutral, Warm voice, Clear voice, Podcast, and Noisy room presets. Selecting a preset leaves processing unchanged until Reset is pressed. Save current settings as preset stores the current effects and bypass state under a custom name in the application settings, independently of the project. Saving an existing name updates that preset. Up to 64 custom presets are supported.
+<br>
 
-The adjustable Natural voice preset uses high-pass at 70 Hz, EQ at 250 Hz / −1.5 dB, presence at 3200 Hz / +1 dB, low-pass at 15 kHz, RMS compression at −24 dB / 2.3:1, attack 12 ms, release 160 ms, a soft knee corresponding to 2.5 linear, and makeup gain +2.9 dB. The RMS detector controls compression directly, without a second gain-smoothing stage. A soft expander attenuates quiet sections without removing time; attenuation is disabled by default. Whisper and spectral noise reduction are not used.
+<img src="docs/media/linux.png" alt="simpleVoiceover running natively on Linux" width="75%">
 
-Voice presets enable loudness normalization, initially targeting −16 LUFS and a −1.5 dBTP true peak ceiling. Both values are adjustable. Before playback or export, Rust measures the processed track with EBU R128 gating and oversampled true peaks, then applies a constant gain during playback and export. If peak headroom prevents reaching the target, the gain remains lower; the app does not reshape dynamics to force the target. Gain is capped at +30 dB, and silence is left unchanged. Measurements use bounded histogram storage and are cached by source regions and processing settings; track names, faders, target changes, and shifting an entire track reuse the analysis. Changed processing is remeasured at the next playback start or export. No media is rewritten. Normalization precedes the manual volume and pan controls; changing faders or mixing tracks can change final peaks. Microphone monitoring uses RMS processing without loudness normalization because the future recording is not yet known. Legacy effects load with normalization disabled until enabled or a new preset is applied.
+<sub>The same interface runs natively on Linux through WebKitGTK.</sub>
 
-Every effect and mixer slider has a question-mark button. Hover or focus shows a localized explanation and a small schematic that follows the setting. Schematics illustrate parameter behavior; they are not measurements of the recording.
+</div>
+
+## Under the hood
+
+The interface is deliberately thin. React renders state and forwards intent; the Rust engine owns every byte of audio and every project file. The two sides talk over three narrow channels, and each one carries only what it is meant to.
+
+<div align="center">
+
+<img src="docs/media/architecture.svg" alt="Architecture: React interface and Rust engine connected by Tauri IPC, a binary WebSocket and HTTP media streaming" width="100%">
+
+</div>
+
+- **Tauri IPC** carries commands from the interface and events (snapshots, progress) back to it. It never carries audio.
+- **A binary WebSocket** carries PCM for playback, microphone input and delivery acknowledgements. An `AudioWorklet` does the physical capture and output.
+- **HTTP** streams the original video to the preview with Range requests. It exposes no project control.
+- **Decoding** uses [Symphonia](https://github.com/pdeljanov/Symphonia). Blocks of PCM are written as they are decoded, buffers are reused, and 48 kHz input skips resampling entirely.
+- **Import** copies and decodes at once. Repeated reads and backward seeks reuse the regions already copied, and jumping to an MP4 index at the end of a file does not copy everything before it first.
+
+### Signal chain
+
+The default **Natural voice** preset, in processing order:
+
+| Stage          | Setting                                                          |
+| -------------- | ---------------------------------------------------------------- |
+| High-pass      | 70 Hz                                                            |
+| Equalizer      | 250 Hz, −1.5 dB                                                  |
+| Presence       | 3.2 kHz, +1 dB                                                   |
+| Low-pass       | 15 kHz                                                           |
+| RMS compressor | −24 dB threshold, 2.3:1, 12 ms attack, 160 ms release, soft knee |
+| Soft expander  | quiet-section attenuation, off by default                        |
+| Makeup gain    | +2.9 dB                                                          |
+| Loudness       | −16 LUFS, −1.5 dBTP true-peak ceiling                            |
+| Volume and pan | per track, applied after normalization                           |
+
+Normalization is a single constant gain computed from a bounded-memory histogram measurement, capped at +30 dB. If peak headroom prevents reaching the target, the gain stays lower: the app never reshapes dynamics to force a number. No media is rewritten.
+
+### Project storage
+
+<div align="center">
+
+<img src="docs/media/storage.svg" alt="Incremental saves append new takes, edits and an index, then commit by writing the alternate header slot" width="100%">
+
+</div>
+
+- A project is **one file, uncompressed**, with a 64-bit offset index. Playback, HTTP Range and export read straight from it without extraction.
+- **Ctrl+S appends** only new media, edits and a fresh index, and reuses existing regions. Saving an edit copies no audio or video.
+- **Two alternating header slots**, each guarded by CRC32, commit a save. Data and index are synced before a slot is updated, so an interrupted append is ignored and the previous revision stays readable.
+- **Save as** compacts the file to the current data and atomically replaces the destination.
+- Version 1.2 still opens older ZIP64 projects and migrates them on the next save.
+
+### Tech stack
+
+| Layer     | Technology                                                                   |
+| --------- | ---------------------------------------------------------------------------- |
+| Interface | React 19, TypeScript, Vite, Golos Text                                       |
+| Desktop   | Tauri 2 with WebView2 on Windows and WebKitGTK 4.1 on Linux                  |
+| Engine    | Rust, Tokio, Axum, Symphonia, ebur128, shine-rs (MP3), zip (legacy projects) |
+| Tests     | Vitest for the interface, `cargo test` for the engine and storage            |
+
+The test suite covers sample-accurate splitting, recording and Undo/Redo, append-only saves, interrupted saves, compaction, ZIP64 migration, seeks beyond 4 GiB, WAV and MP3 round trips, HTTP Range, origin restrictions, WebSocket and localization parity. A full 100 GB project has not been stress-tested.
 
 ## Keyboard
+
+<details>
+<summary>Shortcuts</summary>
+
+<br>
 
 | Keys                  | Action                           |
 | --------------------- | -------------------------------- |
@@ -102,28 +229,47 @@ Every effect and mixer slider has a question-mark button. Hover or focus shows a
 | Ctrl+Z / Ctrl+Shift+Z | Undo / redo                      |
 | Ctrl+C / Ctrl+V       | Copy section / paste at playhead |
 | Ctrl+ + / Ctrl+ −     | Horizontal timeline zoom         |
-| Ctrl+wheel up / down  | Zoom in / out at the pointer     |
+| Ctrl+wheel            | Zoom at the pointer              |
 
-## Architecture and checks
+</details>
 
-React components live in `src/components`; timeline UI lives in `src/timeline`. Hooks separate transport, shortcuts, native file drop, and window lifecycle. `StudioClient` uses Tauri commands and events. Binary WebSocket carries PCM, microphone input, and delivery acknowledgements. AudioWorklet performs physical audio capture and output.
+## Build from source
 
-Rust separates command control, editing, storage, legacy ZIP64 reading, indexed archives, copying media readers, progress, native dialogs, decoding, DSP, mixing, sessions, HTTP/Range, localization, and Tauri lifecycle. PCM is written in blocks, the decoder reuses buffers, and 48 kHz input bypasses resampling. HTTP API does not expose project control.
+You need Node.js and a Rust toolchain.
 
 ```bash
+npm ci
 npm test
-npm run format:check
 npm run build
-cargo fmt --manifest-path backend/Cargo.toml --check
-cargo clippy --manifest-path backend/Cargo.toml --tests -- -D warnings
 ```
 
-Unit and integration tests cover sample-accurate splitting, exclusive recording arm, lock/mute, recording and final microphone data, Undo/Redo and history cleanup, lazy cache and recovery, append-only media saves, interrupted saves, asset removal and compaction, ZIP64 migration, portable Save as, seeks beyond 4 GiB, progress, failed-import cleanup, WAV/MP3 roundtrip, HTTP Range, origin restrictions, WebSocket, AudioWorklet I/O, and localization. A full 100 GB project has not been stress-tested.
-
-A reproducible ignored benchmark measures import, first save, edit, and metadata-only save with ten minutes of stereo WAV:
+Build a Debian package on Ubuntu:
 
 ```bash
-cargo test --manifest-path backend/Cargo.toml large_project_import_and_metadata_save -- --ignored --nocapture
+sudo apt install build-essential pkg-config libwebkit2gtk-4.1-dev librsvg2-dev
+bin/build-deb
 ```
 
-Media libraries: Symphonia (MPL-2.0), shine-rs (LGPL-2.0), zip (MIT), ebur128 (MIT). Exact versions are locked in `backend/Cargo.lock`; frontend dependencies are locked in `package-lock.json`.
+Cross-build the Windows executable from WSL (needs the `x86_64-pc-windows-msvc` target, `cargo-xwin` and LLVM's `llvm-rc`):
+
+```bash
+bin/build-windows
+```
+
+The full guide to editing, effects, storage and the build is in the **[manual](docs/MANUAL.md)**.
+
+## Watch and follow
+
+<div align="center">
+
+<a href="https://www.youtube.com/@arco9-lab"><img src="docs/media/channel-icon.png" alt="Arco9 Lab" width="96"></a>
+
+**[Arco9 Lab on YouTube](https://www.youtube.com/@arco9-lab)**
+
+<sub>Videos about simpleVoiceover.</sub>
+
+</div>
+
+## License
+
+simpleVoiceover is released under the [MIT License](LICENSE). Third-party libraries keep their own licenses: Symphonia (MPL-2.0), shine-rs (LGPL-2.0), zip (MIT) and ebur128 (MIT). Exact versions are locked in `backend/Cargo.lock` and `package-lock.json`.

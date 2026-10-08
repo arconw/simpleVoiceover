@@ -1,0 +1,94 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="420" viewBox="0 0 1200 420" role="img" aria-labelledby="title desc">
+<title id="title">Incremental project saves</title>
+<desc id="desc">A save appends new takes, edits and an index to the end of the project file, then commits by writing the alternate header slot with a higher generation and a CRC32.</desc>
+<defs>
+<linearGradient id="background" x1="0" y1="0" x2="1" y2="1">
+<stop offset="0" stop-color="#0c0e0f"/>
+<stop offset="1" stop-color="#151a16"/>
+</linearGradient>
+<marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M1 1l8 4-8 4z" fill="#d8f593"/></marker>
+<style>
+text{font-family:'Segoe UI','Inter',system-ui,-apple-system,'Helvetica Neue',Arial,sans-serif}
+.title{font-size:15px;font-weight:700;letter-spacing:1.4px;fill:#8d978a}
+.block-text{font-size:14px;font-weight:600;fill:#e8ece4}
+.small{font-size:12.5px;font-weight:500;fill:#9aa496}
+.caption{font-size:19px;font-weight:600;fill:#d8f593}
+.footnote{font-size:15px;font-weight:500;fill:#aab4a6}
+.flow{stroke-dasharray:6 8;animation:flow 0.9s linear infinite}
+.append-takes{animation:append 14s ease-in-out infinite;animation-delay:0s}
+.append-index{animation:append-late 14s ease-in-out infinite}
+.slot-b{animation:slot-b 14s ease-in-out infinite}
+.slot-a-ring{animation:slot-a-ring 14s ease-in-out infinite}
+.arrow-a{animation:arrow-a 14s ease-in-out infinite}
+.arrow-b{animation:arrow-b 14s ease-in-out infinite}
+.caption-open{animation:caption-open 14s ease-in-out infinite}
+.caption-save{animation:caption-save 14s ease-in-out infinite}
+.caption-commit{animation:caption-commit 14s ease-in-out infinite}
+@keyframes flow{to{stroke-dashoffset:-14}}
+@keyframes append{0%,16%{opacity:0;transform:translateX(30px)}24%,90%{opacity:1;transform:translateX(0)}97%,100%{opacity:0;transform:translateX(30px)}}
+@keyframes append-late{0%,22%{opacity:0;transform:translateX(30px)}30%,90%{opacity:1;transform:translateX(0)}97%,100%{opacity:0;transform:translateX(30px)}}
+@keyframes slot-b{0%,40%{opacity:0.3}46%,90%{opacity:1}97%,100%{opacity:0.3}}
+@keyframes slot-a-ring{0%,40%{stroke:#d8f593}46%,90%{stroke:#3a4139}97%,100%{stroke:#d8f593}}
+@keyframes arrow-a{0%,40%{opacity:1}46%,90%{opacity:0.25}97%,100%{opacity:1}}
+@keyframes arrow-b{0%,42%{opacity:0}48%,90%{opacity:1}97%,100%{opacity:0}}
+@keyframes caption-open{0%,14%{opacity:1}18%,92%{opacity:0}97%,100%{opacity:1}}
+@keyframes caption-save{0%,14%{opacity:0}18%,34%{opacity:1}38%,100%{opacity:0}}
+@keyframes caption-commit{0%,34%{opacity:0}40%,90%{opacity:1}95%,100%{opacity:0}}
+@media (prefers-reduced-motion:reduce){.flow,.append-takes,.append-index,.slot-b,.slot-a-ring,.arrow-a,.arrow-b,.caption-open,.caption-save,.caption-commit{animation:none}.append-takes,.append-index,.slot-b,.arrow-b,.caption-commit{opacity:1}.caption-open,.caption-save{opacity:0}}
+</style>
+</defs>
+<rect width="1200" height="420" rx="24" fill="url(#background)"/>
+<rect x="0.5" y="0.5" width="1199" height="419" rx="23.5" fill="none" stroke="#2a312b"/>
+
+<text class="title" x="60" y="48">PROJECT.JUSTSPEAK  ·  VERSION 3  ·  ONE PORTABLE FILE</text>
+
+<g>
+<rect class="slot-a-ring" x="70" y="68" width="190" height="44" rx="12" fill="#1a2316" stroke="#d8f593" stroke-width="2"/>
+<text class="block-text" x="165" y="86" text-anchor="middle">slot A</text>
+<text class="small" x="165" y="103" text-anchor="middle">generation 1 · CRC32</text>
+</g>
+<g class="slot-b">
+<rect x="280" y="68" width="190" height="44" rx="12" fill="#1a2316" stroke="#d8f593" stroke-width="2"/>
+<text class="block-text" x="375" y="86" text-anchor="middle">slot B</text>
+<text class="small" x="375" y="103" text-anchor="middle">generation 2 · CRC32</text>
+</g>
+
+<path class="flow arrow-a" d="M165 112V136H586V160" stroke="#d8f593" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+<path class="flow arrow-b" d="M375 112V126H874V160" stroke="#d8f593" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+
+<rect x="60" y="164" width="1080" height="92" rx="18" fill="#10130f" stroke="#2f362f" stroke-width="1.5"/>
+<g>
+<rect x="68" y="172" width="150" height="76" rx="12" fill="#232826" stroke="#4a524a"/>
+<text class="block-text" x="143" y="205" text-anchor="middle">header</text>
+<text class="small" x="143" y="226" text-anchor="middle">magic · 2 slots</text>
+</g>
+<g>
+<rect x="224" y="172" width="296" height="76" rx="12" fill="#2b1816" stroke="#a24f45"/>
+<text class="block-text" x="372" y="205" text-anchor="middle">media and takes</text>
+<text class="small" x="372" y="226" text-anchor="middle">sources · recordings · PCM · waveforms</text>
+</g>
+<g>
+<rect x="526" y="172" width="120" height="76" rx="12" fill="#1a2316" stroke="#d8f593"/>
+<text class="block-text" x="586" y="205" text-anchor="middle">index</text>
+<text class="small" x="586" y="226" text-anchor="middle">revision 1</text>
+</g>
+<g class="append-takes">
+<rect x="652" y="172" width="150" height="76" rx="12" fill="#2b1816" stroke="#a24f45"/>
+<text class="block-text" x="727" y="205" text-anchor="middle">new takes</text>
+<text class="small" x="727" y="226" text-anchor="middle">only what changed</text>
+</g>
+<g class="append-index">
+<rect x="808" y="172" width="132" height="76" rx="12" fill="#1a2316" stroke="#d8f593"/>
+<text class="block-text" x="874" y="205" text-anchor="middle">edits + index</text>
+<text class="small" x="874" y="226" text-anchor="middle">revision 2</text>
+</g>
+<rect x="948" y="172" width="184" height="76" rx="12" fill="none" stroke="#3a4139" stroke-dasharray="4 7"/>
+<text class="small" x="1040" y="215" text-anchor="middle">next append</text>
+
+<g transform="translate(0 0)">
+<text class="caption caption-open" x="600" y="318" text-anchor="middle">1 · Open  —  the index is read once, media stays inside the file</text>
+<text class="caption caption-save" x="600" y="318" text-anchor="middle">2 · Ctrl+S  —  append new takes, edits and an index; existing media is reused</text>
+<text class="caption caption-commit" x="600" y="318" text-anchor="middle">3 · Commit  —  the other slot gets a higher generation and a CRC32</text>
+</g>
+<text class="footnote" x="600" y="364" text-anchor="middle">A torn write is ignored and the previous revision stays readable. Save as compacts to current data.</text>
+</svg>
