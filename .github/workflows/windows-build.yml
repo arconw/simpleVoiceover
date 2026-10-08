@@ -1,0 +1,57 @@
+name: Windows build
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: windows-build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: backend
+
+      - name: Install frontend dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Build frontend
+        run: npm run build
+
+      - name: Build desktop executable
+        run: cargo build --manifest-path backend/Cargo.toml --release --locked --features desktop
+
+      - name: Name the executable
+        id: package
+        shell: bash
+        run: |
+          version="$(node -p 'JSON.parse(require("fs").readFileSync("package.json", "utf8")).version.replace(/\.0$/, "")')"
+          mkdir -p release
+          cp backend/target/release/simpleVoiceover.exe "release/simpleVoiceover-v${version}.exe"
+          echo "path=release/simpleVoiceover-v${version}.exe" >> "$GITHUB_OUTPUT"
+
+      - name: Record SHA-256
+        shell: bash
+        run: sha256sum "${{ steps.package.outputs.path }}" | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: simpleVoiceover-windows-x64
+          path: ${{ steps.package.outputs.path }}
+          if-no-files-found: error
