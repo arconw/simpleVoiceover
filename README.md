@@ -47,6 +47,10 @@ It is a single native application. There is no FFmpeg to install, no console win
 | **Windows**               | `simpleVoiceover-v1.2.1.exe`      | 15.9&nbsp;MB | Single executable. Needs the WebView2 Runtime.            |
 | **Linux** (Ubuntu 26.04+) | `simpleVoiceover_1.2.1_amd64.deb` |  6.2&nbsp;MB | Needs glibc 2.43+ and WebKitGTK 4.1. `apt` adds the rest. |
 
+> **Windows:** the executable is not code-signed yet, so SmartScreen shows "Windows protected your PC" on first launch. See the Windows details below for how to run it.
+
+Linux install:
+
 ```bash
 sudo apt install ./simpleVoiceover_1.2.1_amd64.deb
 simpleVoiceover
@@ -87,6 +91,31 @@ Your distribution is too old. Releases such as Ubuntu 20.04 and Debian 11 do not
 - **The video preview stays black:** visual playback depends on the codecs your system provides. Try `sudo apt install gstreamer1.0-plugins-bad gstreamer1.0-plugins-ugly` and restart the app.
 - **File dialogs do not open:** they use the XDG desktop portal. `xdg-desktop-portal-gtk` comes with the package; on KDE also install `xdg-desktop-portal-kde`, then run `systemctl --user restart xdg-desktop-portal`.
 - **WSL:** you need WSLg for a visible window and its PulseAudio bridge for sound.
+
+</details>
+
+<details>
+<summary><b>Windows: "Windows protected your PC" (SmartScreen)</b></summary>
+
+<br>
+
+<img src="docs/media/smartscreen.png" alt="The Microsoft Defender SmartScreen dialog for simpleVoiceover-v1.2.1.exe with Unknown publisher" width="420">
+
+The executable is not code-signed yet, so Microsoft Defender SmartScreen reports an **Unknown publisher** the first time you run it. Windows shows this for any new unsigned app, and for unsigned files the reputation starts from zero with every new version. It does not mean that a threat was found.
+
+**To run it**, click **More info**, then **Run anyway**. Or unblock the file before the first launch: right-click it, choose **Properties**, tick **Unblock**, and press **OK**. In PowerShell:
+
+```powershell
+Unblock-File .\simpleVoiceover-v1.2.1.exe
+```
+
+**To verify the download**, compare its checksum with the one in the [release notes](https://github.com/arconw/simpleVoiceover/releases/tag/v1.2.1):
+
+```powershell
+Get-FileHash .\simpleVoiceover-v1.2.1.exe -Algorithm SHA256
+```
+
+Download the file only from this repository's Releases page. On Windows 11 with **Smart App Control** turned on, unsigned apps can be blocked outright, and then the app cannot be started until the executable is signed.
 
 </details>
 
