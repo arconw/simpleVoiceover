@@ -314,6 +314,8 @@ Cross-build the Windows executable from WSL (needs the `x86_64-pc-windows-msvc` 
 bin/build-windows
 ```
 
+The [Windows build](.github/workflows/windows-build.yml) workflow builds the same executable from source on GitHub-hosted runners. Start it from the Actions tab and download the `simpleVoiceover-windows-x64` artifact.
+
 The full guide to editing, effects, storage and the build is in the **[manual](docs/MANUAL.md)**.
 
 ## Arco9 Lab
