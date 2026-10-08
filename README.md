@@ -42,26 +42,55 @@ It is a single native application. There is no FFmpeg to install, no console win
 
 </div>
 
-| Platform                   | Package                           |         Size | Notes                                                |
-| -------------------------- | --------------------------------- | -----------: | ---------------------------------------------------- |
-| **Windows**                | `simpleVoiceover-v1.2.1.exe`      | 15.9&nbsp;MB | Single executable. Needs the WebView2 Runtime.       |
-| **Linux** (Debian, Ubuntu) | `simpleVoiceover_1.2.1_amd64.deb` |  6.2&nbsp;MB | Needs WebKitGTK 4.1, GTK 3, GStreamer media plugins. |
+| Platform                  | Package                           |         Size | Notes                                                     |
+| ------------------------- | --------------------------------- | -----------: | --------------------------------------------------------- |
+| **Windows**               | `simpleVoiceover-v1.2.1.exe`      | 15.9&nbsp;MB | Single executable. Needs the WebView2 Runtime.            |
+| **Linux** (Ubuntu 26.04+) | `simpleVoiceover_1.2.1_amd64.deb` |  6.2&nbsp;MB | Needs glibc 2.43+ and WebKitGTK 4.1. `apt` adds the rest. |
 
 ```bash
 sudo apt install ./simpleVoiceover_1.2.1_amd64.deb
 simpleVoiceover
 ```
 
-All versions are listed on the [Releases](https://github.com/arconw/simpleVoiceover/releases) page.
-
 <details>
-<summary>Linux details and WSL</summary>
+<summary><b>Linux: WebKitGTK requirements and common problems</b></summary>
 
 <br>
 
-The Debian package inherits the minimum library versions of the Ubuntu system it was built on, so build on the oldest distribution you intend to support. File dialogs go through the XDG desktop portal. Under WSL you need WSLg for a visible window and its PulseAudio bridge for sound.
+simpleVoiceover draws its interface with **WebKitGTK 4.1** (`libwebkit2gtk-4.1-0`), the web engine Tauri 2 uses on Linux. The package also depends on GTK 3, the XDG desktop portals and the GStreamer plugins `good` and `libav`, so `apt` pulls everything in together and a current system needs no extra steps.
+
+**1. Check what is installed**
+
+```bash
+dpkg -s libwebkit2gtk-4.1-0 | grep -E '^(Status|Version)'
+```
+
+No output, or a status other than `install ok installed`, means WebKitGTK is missing.
+
+**2. Install or update it**
+
+```bash
+sudo apt update
+sudo apt install libwebkit2gtk-4.1-0
+sudo apt full-upgrade
+```
+
+The second command installs the library if it is missing and upgrades it to the newest version your distribution ships. Restart the app afterwards. Take WebKitGTK from your distribution only: it is a browser engine and receives frequent security fixes through normal updates.
+
+**3. `Unable to locate package` or unmet dependencies**
+
+Your distribution is too old. Releases such as Ubuntu 20.04 and Debian 11 do not ship WebKitGTK 4.1, and the prebuilt package was built on Ubuntu 26.04, so it also needs glibc 2.43. Upgrade the distribution, or build a package that matches your system with `bin/build-deb` (see [Build from source](#build-from-source)): it links against the libraries of the machine it is built on.
+
+**Common problems**
+
+- **Blank window, or a crash at start** (often NVIDIA drivers or Wayland): run `WEBKIT_DISABLE_DMABUF_RENDERER=1 simpleVoiceover`. If that is not enough, add `WEBKIT_DISABLE_COMPOSITING_MODE=1`. These are standard WebKitGTK switches, not simpleVoiceover settings.
+- **The video preview stays black:** visual playback depends on the codecs your system provides. Try `sudo apt install gstreamer1.0-plugins-bad gstreamer1.0-plugins-ugly` and restart the app.
+- **File dialogs do not open:** they use the XDG desktop portal. `xdg-desktop-portal-gtk` comes with the package; on KDE also install `xdg-desktop-portal-kde`, then run `systemctl --user restart xdg-desktop-portal`.
+- **WSL:** you need WSLg for a visible window and its PulseAudio bridge for sound.
 
 </details>
+
+All versions are listed on the [Releases](https://github.com/arconw/simpleVoiceover/releases) page.
 
 ## Features
 
