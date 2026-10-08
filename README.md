@@ -22,7 +22,7 @@
 <br>
 
 <a href="https://www.youtube.com/@arco9-lab"><img src="docs/media/channel-icon.png" alt="Arco9 Lab" width="30" align="absmiddle"></a>&nbsp;
-<a href="https://www.youtube.com/@arco9-lab"><b>Videos and updates on the Arco9 Lab YouTube channel</b></a>
+<a href="https://www.youtube.com/@arco9-lab"><b>Arco9 Lab on YouTube</b></a>
 
 </div>
 
@@ -287,15 +287,13 @@ bin/build-windows
 
 The full guide to editing, effects, storage and the build is in the **[manual](docs/MANUAL.md)**.
 
-## Watch and follow
+## Arco9 Lab
 
 <div align="center">
 
 <a href="https://www.youtube.com/@arco9-lab"><img src="docs/media/channel-icon.png" alt="Arco9 Lab" width="96"></a>
 
 **[Arco9 Lab on YouTube](https://www.youtube.com/@arco9-lab)**
-
-<sub>Videos about simpleVoiceover.</sub>
 
 </div>
 
