@@ -14,6 +14,7 @@ type Props = Pick<
   | 'chooseWorkingDirectory'
   | 'importNative'
   | 'snapshot'
+  | 'selectedTrack'
 >
 
 export default function FilesPanel({
@@ -26,6 +27,7 @@ export default function FilesPanel({
   chooseWorkingDirectory,
   importNative,
   snapshot,
+  selectedTrack,
 }: Props) {
   return (
     <div className="files-panel">
@@ -62,7 +64,7 @@ export default function FilesPanel({
               <button
                 title={t('files.placeTitle')}
                 aria-label={t('files.placeLabel', { value0: asset.name })}
-                disabled={recording || !!busy}
+                disabled={recording || !!busy || !selectedTrack}
                 onClick={() => placeAsset(asset)}
               >
                 <Plus size={15} />

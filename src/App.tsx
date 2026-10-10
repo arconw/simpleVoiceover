@@ -13,11 +13,12 @@ import Notice from './components/Notice'
 import WindowControls from './components/WindowControls'
 import PreviewInfo from './components/PreviewInfo'
 import SettingsDialog from './components/SettingsDialog'
+import RemoveTrackDialog from './components/RemoveTrackDialog'
 import { translateMessage } from './i18n'
 
 export default function App() {
   const studio = useStudio()
-  if (!studio.selectedTrack)
+  if (!studio.snapshot)
     return (
       <main className="studio connecting" onContextMenu={(event) => event.preventDefault()}>
         <WindowControls {...studio} />
@@ -62,6 +63,9 @@ export default function App() {
         recordStart={studio.recordStart}
         tool={studio.tool}
         onToolChange={studio.setTool}
+        snapping={studio.snapping}
+        onSnappingChange={studio.setSnapping}
+        onRemoveTrack={studio.requestRemoveTrack}
         onAddTrack={studio.addTrack}
         onRemoveClip={studio.removeClip}
         getLevel={studio.getLevel}
@@ -78,6 +82,7 @@ export default function App() {
       {studio.help && <HelpDialog {...studio} />}
       {studio.settings && <SettingsDialog {...studio} />}
       {studio.confirmMode && <CloseDialog {...studio} />}
+      {studio.trackToRemove && <RemoveTrackDialog {...studio} />}
     </main>
   )
 }

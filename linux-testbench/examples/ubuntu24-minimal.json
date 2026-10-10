@@ -1,0 +1,6 @@
+{
+  "extends": "ubuntu24-pipewire",
+  "codecs": "minimal",
+  "artifact": "appimage",
+  "webkit": "system"
+}

@@ -1,0 +1,127 @@
+{
+  "schema": 1,
+  "distributions": {
+    "ubuntu22": {
+      "image": "docker.io/library/ubuntu:22.04",
+      "family": "deb",
+      "label": "Ubuntu 22.04 LTS",
+      "native": "deb"
+    },
+    "ubuntu24": {
+      "image": "docker.io/library/ubuntu:24.04",
+      "family": "deb",
+      "label": "Ubuntu 24.04 LTS",
+      "native": "deb"
+    },
+    "debian12": {
+      "image": "docker.io/library/debian:12",
+      "family": "deb",
+      "label": "Debian 12",
+      "native": "deb"
+    },
+    "debian13": {
+      "image": "docker.io/library/debian:13",
+      "family": "deb",
+      "label": "Debian 13",
+      "native": "deb"
+    },
+    "fedora43": {
+      "image": "registry.fedoraproject.org/fedora:43",
+      "family": "rpm",
+      "label": "Fedora 43",
+      "native": "rpm"
+    },
+    "fedora44": {
+      "image": "registry.fedoraproject.org/fedora:44",
+      "family": "rpm",
+      "label": "Fedora 44",
+      "native": "rpm"
+    },
+    "arch": {
+      "image": "docker.io/library/archlinux:base",
+      "family": "arch",
+      "label": "Arch Linux rolling",
+      "native": "appimage"
+    }
+  },
+  "presets": {
+    "ubuntu22-pulse": {
+      "distribution": "ubuntu22",
+      "audio": "pulseaudio",
+      "artifact": "deb",
+      "codecs": "full"
+    },
+    "ubuntu24-pipewire": {
+      "distribution": "ubuntu24",
+      "audio": "pipewire",
+      "artifact": "deb",
+      "codecs": "full"
+    },
+    "debian12-pulse": {
+      "distribution": "debian12",
+      "audio": "pulseaudio",
+      "artifact": "deb",
+      "codecs": "full"
+    },
+    "debian13-pipewire": {
+      "distribution": "debian13",
+      "audio": "pipewire",
+      "artifact": "deb",
+      "codecs": "full"
+    },
+    "fedora43-pipewire": {
+      "distribution": "fedora43",
+      "audio": "pipewire",
+      "artifact": "rpm",
+      "codecs": "full"
+    },
+    "fedora44-pipewire": {
+      "distribution": "fedora44",
+      "audio": "pipewire",
+      "artifact": "rpm",
+      "codecs": "full"
+    },
+    "arch-pipewire": {
+      "distribution": "arch",
+      "audio": "pipewire",
+      "artifact": "appimage",
+      "codecs": "full"
+    },
+    "ubuntu22-appimage": {
+      "distribution": "ubuntu22",
+      "audio": "pulseaudio",
+      "artifact": "appimage",
+      "codecs": "full"
+    },
+    "fedora44-system-webkit": {
+      "distribution": "fedora44",
+      "audio": "pipewire",
+      "artifact": "appimage",
+      "webkit": "system",
+      "codecs": "full"
+    }
+  },
+  "virtual_machines": {
+    "ubuntu22-generic": {
+      "preset": "ubuntu22-pulse",
+      "image": "https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64.img",
+      "checksums": "https://cloud-images.ubuntu.com/jammy/current/SHA256SUMS",
+      "kernel_package": "linux-generic",
+      "kernel_description": "Ubuntu 22.04 GA kernel"
+    },
+    "ubuntu22-hwe": {
+      "preset": "ubuntu22-pulse",
+      "image": "https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64.img",
+      "checksums": "https://cloud-images.ubuntu.com/jammy/current/SHA256SUMS",
+      "kernel_package": "linux-generic-hwe-22.04",
+      "kernel_description": "Ubuntu 22.04 HWE kernel; same userspace as GA"
+    },
+    "ubuntu24-generic": {
+      "preset": "ubuntu24-pipewire",
+      "image": "https://cloud-images.ubuntu.com/noble/current/noble-server-cloudimg-amd64.img",
+      "checksums": "https://cloud-images.ubuntu.com/noble/current/SHA256SUMS",
+      "kernel_package": "linux-generic",
+      "kernel_description": "Ubuntu 24.04 GA kernel"
+    }
+  }
+}

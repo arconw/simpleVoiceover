@@ -1,10 +1,15 @@
 param([ValidateSet('start','stop','status','logs')][string]$Action)
 $ErrorActionPreference = 'Stop'
-$studioExecutable = 'D:\devw\my\tools\simpleVoiceover\simpleVoiceover.exe'
-$versionedExecutable = 'D:\devw\my\tools\simpleVoiceover\simpleVoiceover-v1.2.exe'
-if (Test-Path -LiteralPath $versionedExecutable) { $studioExecutable = $versionedExecutable }
-$updatedExecutable = 'D:\devw\my\tools\simpleVoiceover\simpleVoiceover-v1.2.1.exe'
-if (Test-Path -LiteralPath $updatedExecutable) { $studioExecutable = $updatedExecutable }
+$projectDirectory = Split-Path -Parent $PSScriptRoot
+$studioDirectory = Join-Path $projectDirectory 'build'
+$studioExecutable = Join-Path $studioDirectory 'simpleVoiceover.exe'
+$latestExecutable = if (Test-Path -LiteralPath $studioDirectory -PathType Container) {
+    Get-ChildItem -LiteralPath $studioDirectory -Filter 'simpleVoiceover-v*.exe' -File |
+        Where-Object { $_.BaseName -match '^simpleVoiceover-v\d+\.\d+(?:\.\d+)?$' } |
+        Sort-Object { [version]($_.BaseName -replace '^simpleVoiceover-v', '') } -Descending |
+        Select-Object -First 1
+}
+if ($latestExecutable) { $studioExecutable = $latestExecutable.FullName }
 $studioUrl = 'http://127.0.0.1:5174'
 $studioLog = Join-Path $env:LOCALAPPDATA 'simpleVoiceover\simpleVoiceover.log'
 function Get-StudioStatus {

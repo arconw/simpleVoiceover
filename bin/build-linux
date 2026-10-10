@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+set -euo pipefail
+project_directory="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+output_directory="$project_directory/build"
+cd "$project_directory"
+case "${1:-all}" in
+  all) bundle_targets=deb,rpm,appimage ;;
+  deb|rpm|appimage) bundle_targets="$1" ;;
+  *) printf 'Use: %s [all|deb|rpm|appimage]\n' "$0" >&2; exit 2 ;;
+esac
+pkg-config --exists gtk+-3.0 webkit2gtk-4.1 javascriptcoregtk-4.1 libpulse gstreamer-1.0
+npm ci --no-audit --no-fund
+npm run build
+application_version="$(node -p 'JSON.parse(require("fs").readFileSync("package.json", "utf8")).version')"
+cd backend
+../node_modules/.bin/tauri build --ci --features desktop --bundles "$bundle_targets" -- --locked
+mkdir -p "$output_directory"
+temporary_file=""
+trap '[[ -z "$temporary_file" ]] || rm -f -- "$temporary_file"' EXIT
+for bundle_format in ${bundle_targets//,/ }; do
+  case "$bundle_format" in
+    appimage) bundle_extension=AppImage ;;
+    *) bundle_extension="$bundle_format" ;;
+  esac
+  matched=false
+  for bundle_file in "$output_directory/.cache/release/bundle/$bundle_format/"*"$application_version"*".$bundle_extension"; do
+    [[ -f "$bundle_file" ]] || continue
+    temporary_file="$(mktemp "$output_directory/.simplevoiceover-build.XXXXXX")"
+    cp -- "$bundle_file" "$temporary_file"
+    chmod --reference="$bundle_file" "$temporary_file"
+    output_file="$output_directory/$(basename -- "$bundle_file")"
+    mv -f -- "$temporary_file" "$output_file"
+    temporary_file=""
+    matched=true
+    printf 'Built: %s\n' "$output_file"
+  done
+  if [[ "$matched" == false ]]; then
+    printf 'No %s artifact was generated for version %s\n' "$bundle_format" "$application_version" >&2
+    exit 1
+  fi
+done

@@ -3,6 +3,7 @@ import {
   Copy,
   ClipboardPaste,
   Maximize2,
+  Magnet,
   Minus,
   MousePointer2,
   Plus,
@@ -20,6 +21,8 @@ type Props = Pick<
   | 'transport'
   | 'tool'
   | 'onToolChange'
+  | 'snapping'
+  | 'onSnappingChange'
   | 'recording'
   | 'selectedClipId'
   | 'onSplitClip'
@@ -37,6 +40,8 @@ export default function TimelineToolbar({
   tracks,
   tool,
   onToolChange,
+  snapping,
+  onSnappingChange,
   recording,
   selectedClipId,
   onSplitClip,
@@ -92,6 +97,15 @@ export default function TimelineToolbar({
           }}
         >
           <Scissors size={12} />
+        </button>
+        <button
+          className={`tl-tool ${snapping ? 'is-active' : ''}`}
+          title={`${t('tools.snap')} · ${snapping ? t('common.on') : t('common.off')}`}
+          aria-label={t('tools.snap')}
+          aria-pressed={snapping}
+          onClick={() => onSnappingChange(!snapping)}
+        >
+          <Magnet size={15} />
         </button>
         <button
           className="tl-tool"

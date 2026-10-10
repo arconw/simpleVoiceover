@@ -2,20 +2,48 @@
   "$schema": "https://schema.tauri.app/config/2",
   "bundle": {
     "active": true,
-    "targets": ["deb"],
+    "targets": ["deb", "rpm", "appimage"],
     "category": "Music",
+    "license": "MIT",
     "shortDescription": "A local voiceover and audio editing studio",
     "icon": ["icons/icon.png"],
     "linux": {
+      "appimage": {
+        "bundleMediaFramework": true
+      },
       "deb": {
         "depends": [
-          "libwebkit2gtk-4.1-0",
-          "libgtk-3-0t64",
+          "libc6 (>= 2.35)",
+          "libgcc-s1",
+          "libwebkit2gtk-4.1-0 (>= 2.40)",
+          "libgtk-3-0 | libgtk-3-0t64",
+          "libpulse0",
+          "libgstreamer1.0-0 (>= 1.20)",
           "xdg-desktop-portal",
           "xdg-desktop-portal-gtk",
+          "gstreamer1.0-plugins-base",
           "gstreamer1.0-plugins-good",
           "gstreamer1.0-libav"
-        ]
+        ],
+        "recommends": ["pipewire-pulse | pulseaudio"]
+      },
+      "rpm": {
+        "depends": [
+          "glibc",
+          "libgcc",
+          "webkit2gtk4.1",
+          "gtk3",
+          "pulseaudio-libs",
+          "gstreamer1",
+          "gstreamer1-plugins-base",
+          "gstreamer1-plugins-good",
+          "gstreamer1-plugins-bad-free",
+          "gstreamer1-plugin-libav",
+          "gstreamer1-plugin-openh264",
+          "xdg-desktop-portal",
+          "xdg-desktop-portal-gtk"
+        ],
+        "recommends": ["pulseaudio-daemon"]
       }
     }
   }

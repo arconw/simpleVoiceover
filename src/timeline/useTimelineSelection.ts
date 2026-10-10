@@ -11,6 +11,7 @@ import {
   type TimelineSelection,
 } from './selection'
 import { clamp } from './viewport'
+import { clipBoundaries, snapDelta } from './snapping'
 
 interface Gesture {
   pointerId: number
@@ -149,14 +150,26 @@ export function useTimelineSelection(props: TimelineProps, viewport: TimelineVie
       return
     }
     const selected = current.selection!
-    const delta = Math.max(-selected.start, (event.clientX - current.x) / current.pixelsPerSecond)
+    let delta = Math.max(-selected.start, (event.clientX - current.x) / current.pixelsPerSecond)
     const proposed = index - current.trackIndex
     const shift = canMove(current.tracks, selected.regions, proposed) ? proposed : current.shift
-    current.delta = delta
-    current.shift = shift
     const trackIds = selected.trackIds
       .map((id) => current.tracks[current.tracks.findIndex((track) => track.id === id) + shift]?.id)
       .filter((id): id is string => !!id)
+    if (props.snapping)
+      delta = snapDelta(
+        delta,
+        selected.regions.flatMap((region) => [region.from, region.to]),
+        clipBoundaries(
+          current.tracks,
+          trackIds,
+          selected.regions.map((region) => region.clipId),
+        ),
+        current.pixelsPerSecond,
+        -selected.start,
+      )
+    current.delta = delta
+    current.shift = shift
     setPreview({
       tracks: previewMove(current.tracks, selected.regions, delta, shift),
       selection: {

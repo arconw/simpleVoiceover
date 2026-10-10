@@ -130,6 +130,145 @@ fn fixture_store() -> Result<(tempfile::TempDir, Store)> {
 }
 
 #[test]
+fn removing_tracks_is_undoable_and_preserves_shared_media() -> Result<()> {
+    let (_temporary, mut store) = fixture_store()?;
+    let mut duplicate = store.project.tracks[0].clone();
+    duplicate.id = id();
+    duplicate.clips[0].id = id();
+    let mut project = store.project.clone();
+    project.tracks.push(duplicate.clone());
+    store.replace(project)?;
+    let original = serde_json::to_value(&store.project)?;
+    let removed = store.project.tracks[0].id.clone();
+    let asset = store.project.assets[0].id.clone();
+    commands::execute(
+        &mut store,
+        &json!({"command":"track_remove","trackId":removed}),
+    )?;
+    assert_eq!(store.project.tracks.len(), 3);
+    assert_eq!(store.project.assets.len(), 1);
+    assert!(store.source(&asset).exists());
+    let mut renderer = mixer::Mixer::new(&store)?;
+    let (samples, _) = renderer.block(&store.project, 10000, 1024, Some(&duplicate.id), None)?;
+    assert!(samples.iter().flatten().any(|sample| sample.abs() > 0.01));
+    drop(renderer);
+    commands::execute(&mut store, &json!({"command":"undo"}))?;
+    assert_eq!(serde_json::to_value(&store.project)?, original);
+    commands::execute(&mut store, &json!({"command":"redo"}))?;
+    assert!(!store.project.tracks.iter().any(|track| track.id == removed));
+    commands::execute(&mut store, &json!({"command":"undo"}))?;
+    assert_eq!(serde_json::to_value(&store.project)?, original);
+    Ok(())
+}
+
+#[test]
+fn invalid_and_locked_track_removal_preserve_saved_state_and_history() -> Result<()> {
+    let (temporary, mut store) = fixture_store()?;
+    let track = store.project.tracks[0].id.clone();
+    commands::execute(
+        &mut store,
+        &json!({"command":"track_patch","trackId":track,"patch":{"locked":true}}),
+    )?;
+    store.save(&temporary.path().join("locked.justspeak"))?;
+    let original = serde_json::to_value(&store.project)?;
+    for request in [
+        json!({"command":"track_remove","trackId":track}),
+        json!({"command":"track_remove","trackId":"missing"}),
+        json!({"command":"track_remove"}),
+    ] {
+        assert!(commands::execute(&mut store, &request).is_err());
+        assert_eq!(serde_json::to_value(&store.project)?, original);
+        assert!(!store.config.dirty);
+        assert!(store.history.is_empty() && store.redo.is_empty());
+        assert!(!store.root().exists());
+    }
+    Ok(())
+}
+
+#[test]
+fn removing_the_last_track_can_be_saved_reopened_and_followed_by_adding_a_track() -> Result<()> {
+    let (temporary, mut store) = fixture_store()?;
+    let ids: Vec<_> = store
+        .project
+        .tracks
+        .iter()
+        .map(|track| track.id.clone())
+        .collect();
+    for track in ids {
+        commands::execute(
+            &mut store,
+            &json!({"command":"track_remove","trackId":track}),
+        )?;
+    }
+    assert!(store.project.tracks.is_empty());
+    let project_id = store.project.id.clone();
+    let asset_id = store.project.assets[0].id.clone();
+    let file = temporary.path().join("empty.justspeak");
+    store.save(&file)?;
+    drop(store);
+    let mut reopened = Store::open(temporary.path().join("config"), None)?;
+    assert_eq!(reopened.project.id, project_id);
+    assert!(reopened.project.tracks.is_empty());
+    assert_eq!(reopened.project.assets[0].id, asset_id);
+    commands::execute(&mut reopened, &json!({"command":"track_add"}))?;
+    assert_eq!(reopened.project.tracks.len(), 1);
+    assert_eq!(reopened.project.tracks[0].kind, "audio");
+    assert!(reopened.config.dirty);
+    Ok(())
+}
+
+#[test]
+fn track_removal_cannot_interrupt_a_recording() -> Result<()> {
+    let (_temporary, mut store) = fixture_store()?;
+    let mut session = crate::session::AudioSession::new();
+    crate::controller::execute(
+        &mut store,
+        &mut session,
+        &json!({"command":"record_begin","position":0.}),
+    )?;
+    let original = serde_json::to_value(&store.project)?;
+    let track = store.project.tracks[1].id.clone();
+    assert!(
+        crate::controller::execute(
+            &mut store,
+            &mut session,
+            &json!({"command":"track_remove","trackId":track})
+        )
+        .is_err()
+    );
+    assert!(session.recording.is_some());
+    assert_eq!(serde_json::to_value(&store.project)?, original);
+    Ok(())
+}
+
+#[test]
+fn solo_includes_all_selected_tracks_and_mute_still_silences_them() -> Result<()> {
+    let (_temporary, mut store) = fixture_store()?;
+    let audible = store.project.tracks[0].id.clone();
+    let empty = store.project.tracks[1].id.clone();
+    commands::execute(
+        &mut store,
+        &json!({"command":"track_patch","trackId":empty,"patch":{"solo":true}}),
+    )?;
+    let mut renderer = mixer::Mixer::new(&store)?;
+    let (silenced, _) = renderer.block(&store.project, 10000, 1024, None, None)?;
+    assert!(silenced.iter().flatten().all(|sample| *sample == 0.));
+    commands::execute(
+        &mut store,
+        &json!({"command":"track_patch","trackId":audible,"patch":{"solo":true}}),
+    )?;
+    let (both, _) = renderer.block(&store.project, 11024, 1024, None, None)?;
+    assert!(both.iter().flatten().any(|sample| sample.abs() > 0.01));
+    commands::execute(
+        &mut store,
+        &json!({"command":"track_patch","trackId":audible,"patch":{"mute":true}}),
+    )?;
+    let (muted, _) = renderer.block(&store.project, 12048, 1024, None, None)?;
+    assert!(muted.iter().flatten().all(|sample| *sample == 0.));
+    Ok(())
+}
+
+#[test]
 fn arm_is_exclusive_and_lock_only_protects_clip_editing() -> Result<()> {
     let (_temporary, mut store) = fixture_store()?;
     let voice = store.project.tracks[1].id.clone();

@@ -44,14 +44,16 @@ fn old_configuration_uses_the_system_language() -> Result<()> {
     let mut settings = serde_json::to_value(&store.config)?;
     settings.as_object_mut().unwrap().remove("language");
     settings.as_object_mut().unwrap().remove("effectPresets");
+    settings.as_object_mut().unwrap().remove("inputDevice");
+    settings.as_object_mut().unwrap().remove("outputDevice");
     fs::write(
         configuration.join("settings.json"),
         serde_json::to_vec(&settings)?,
     )?;
-    assert_eq!(
-        Store::open(configuration.clone(), None)?.config.language,
-        "system"
-    );
+    let recovered = Store::open(configuration.clone(), None)?;
+    assert_eq!(recovered.config.language, "system");
+    assert!(recovered.config.input_device.is_empty());
+    assert!(recovered.config.output_device.is_empty());
     settings["language"] = json!("unsupported");
     fs::write(
         configuration.join("settings.json"),
@@ -114,4 +116,70 @@ fn native_dialogs_share_complete_catalogs_and_english_fallback() {
     let message = i18n::formatted_message("progress.import", &[("name", "voice.wav".into())]);
     assert!(message.starts_with("[[progress.import|"));
     assert!(message.ends_with("]]"));
+}
+
+#[test]
+fn audio_devices_persist_without_editing_projects_or_interrupting_transport() -> Result<()> {
+    let directory = tempfile::tempdir()?;
+    let configuration = directory.path().join("configuration");
+    let project = directory.path().join("session.justspeak");
+    let mut store = Store::open(configuration.clone(), Some(directory.path().join("work")))?;
+    store.save(&project)?;
+    let before = fs::read(&project)?;
+    let mut session = crate::session::AudioSession::new();
+    crate::controller::execute(&mut store, &mut session, &json!({"command":"play"}))?;
+    crate::controller::execute(
+        &mut store,
+        &mut session,
+        &json!({
+            "command":"audio_preferences_patch", "inputDevice":"usb-microphone", "outputDevice":"usb-speaker"
+        }),
+    )?;
+    assert!(session.playing);
+    assert!(session.mixer.is_some());
+    assert!(!store.config.dirty);
+    assert!(store.history.is_empty());
+    assert_eq!(fs::read(&project)?, before);
+    let recovered = Store::open(configuration.clone(), None)?;
+    assert_eq!(recovered.config.input_device, "usb-microphone");
+    assert_eq!(recovered.config.output_device, "usb-speaker");
+    store.load(&project)?;
+    store.change_directory(directory.path().join("other-work"))?;
+    assert_eq!(store.config.input_device, "usb-microphone");
+    assert_eq!(store.config.output_device, "usb-speaker");
+    let settings_before = fs::read(configuration.join("settings.json"))?;
+    for invalid in ["line\nbreak".to_string(), "a".repeat(4097)] {
+        assert!(store.set_audio_devices(&invalid, "").is_err());
+        assert!(store.set_audio_devices("", &invalid).is_err());
+    }
+    assert_eq!(
+        fs::read(configuration.join("settings.json"))?,
+        settings_before
+    );
+    session.playing = false;
+    session.mixer = None;
+    for track in &mut store.project.tracks {
+        track.armed = false;
+    }
+    store
+        .project
+        .tracks
+        .iter_mut()
+        .find(|track| track.kind == "audio")
+        .unwrap()
+        .armed = true;
+    session.begin_record(&mut store, 0.)?;
+    crate::controller::execute(
+        &mut store,
+        &mut session,
+        &json!({
+            "command":"audio_preferences_patch", "inputDevice":"", "outputDevice":""
+        }),
+    )?;
+    assert!(session.recording.is_some());
+    session.finish_record(&mut store)?;
+    let recovered = Store::open(configuration, None)?;
+    assert!(recovered.config.input_device.is_empty());
+    assert!(recovered.config.output_device.is_empty());
+    Ok(())
 }

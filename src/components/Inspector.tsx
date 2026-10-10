@@ -29,7 +29,7 @@ export default function Inspector(panel: StudioController) {
       <div className="inspector-body" role="tabpanel">
         {tab === 'files' && <FilesPanel {...panel} />}
         {tab === 'mixer' && <MixerPanel {...panel} />}
-        {tab === 'effects' && (
+        {tab === 'effects' && selectedTrack && (
           <>
             <div className="selected-track">
               <span className="eyebrow">{t('inspector.track')}</span>
@@ -47,6 +47,7 @@ export default function Inspector(panel: StudioController) {
               <span className="track-color" style={{ background: selectedTrack.color }} />
             </div>
             <EffectsPanel
+              key={selectedTrack.id}
               track={selectedTrack}
               onChange={(patch) => updateTrack(selectedTrack.id, patch)}
               presets={panel.effectPresets}
@@ -54,6 +55,9 @@ export default function Inspector(panel: StudioController) {
               operationPending={panel.operationPending}
             />
           </>
+        )}
+        {tab === 'effects' && !selectedTrack && (
+          <p className="hint muted">{t('effects.noTrack')}</p>
         )}
       </div>
       <div className="inspector-foot">

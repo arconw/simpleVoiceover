@@ -85,6 +85,14 @@ describe('localization catalogs', () => {
       'Importing voice.wav',
     )
   })
+  it('preserves user track names in deletion confirmations and Solo tooltips', () => {
+    const name = 'Take {names} — 日本語'
+    for (const [language] of languages) {
+      expect(translate(language, 'track.deleteConfirmBody', { name })).toContain(name)
+      expect(translate(language, 'track.silencedBySolo', { names: name })).toContain(name)
+      expect(translate(language, 'presets.custom')).not.toBe('presets.custom')
+    }
+  })
   it('resolves supported regional system languages and falls back for unsupported languages', () => {
     expect(resolveLanguage(['fr-CA', 'en-US'])).toBe('fr')
     expect(resolveLanguage(['pt_BR'])).toBe('pt')

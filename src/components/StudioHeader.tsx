@@ -121,23 +121,27 @@ export default function StudioHeader({
               MP3
             </button>
           </div>
-          <span className="menu-section">
-            {t('export.trackPrefix')} {localizedName(selectedTrack.name)}
-          </span>
-          <div className="menu-formats">
-            <button
-              disabled={disabled || !selectedTrack.clips.length}
-              onClick={() => run(() => exportAudio(selectedTrack.id))}
-            >
-              WAV
-            </button>
-            <button
-              disabled={disabled || !selectedTrack.clips.length}
-              onClick={() => run(() => exportAudio(selectedTrack.id, 'mp3'))}
-            >
-              MP3
-            </button>
-          </div>
+          {selectedTrack && (
+            <>
+              <span className="menu-section">
+                {t('export.trackPrefix')} {localizedName(selectedTrack.name)}
+              </span>
+              <div className="menu-formats">
+                <button
+                  disabled={disabled || !selectedTrack.clips.length}
+                  onClick={() => run(() => exportAudio(selectedTrack.id))}
+                >
+                  WAV
+                </button>
+                <button
+                  disabled={disabled || !selectedTrack.clips.length}
+                  onClick={() => run(() => exportAudio(selectedTrack.id, 'mp3'))}
+                >
+                  MP3
+                </button>
+              </div>
+            </>
+          )}
           <button onClick={() => run(() => setSettings(true))}>
             <Settings size={16} />
             {t('settings.title')}

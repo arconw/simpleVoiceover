@@ -3,6 +3,7 @@ import type { Track, MediaAsset } from './types'
 import type { LanguagePreference } from './i18n'
 import type { EffectPreset } from './effectPresets'
 import type { ClipRegion, ClipClipboard } from './timeline/selection'
+import type { AudioDeviceCatalog } from './audio/devices'
 
 export interface OperationProgress {
   label: string
@@ -17,6 +18,8 @@ export interface Snapshot {
     dirty: boolean
     language?: LanguagePreference
     effectPresets?: EffectPreset[]
+    inputDevice?: string
+    outputDevice?: string
   }
   duration: number
   canUndo: boolean
@@ -25,6 +28,9 @@ export interface Snapshot {
 export interface CommandPayloads {
   snapshot: Record<string, never>
   preferences_patch: { preference: LanguagePreference }
+  audio_preferences_patch: { inputDevice: string; outputDevice: string }
+  audio_devices: Record<string, never>
+  audio_devices_sync: Record<string, never>
   preset_save: Omit<EffectPreset, 'id'>
   regions_edit: { regions: ClipRegion[]; delta: number; trackOffset: number; remove?: boolean }
   clips_paste: {
@@ -41,6 +47,7 @@ export interface CommandPayloads {
   export: { trackId: string | null; format: 'wav' | 'mp3' }
   track_patch: { trackId: string; patch: Partial<Track> }
   track_add: Record<string, never>
+  track_remove: { trackId: string }
   clip_remove: { trackId: string; clipId: string | null }
   clip_place: { trackId: string; assetId: string; position: number }
   asset_remove: { assetId: string }
@@ -60,6 +67,7 @@ export interface CommandResult {
   path?: string
   snapshot?: Snapshot
   regions?: ClipRegion[]
+  audioDevices?: AudioDeviceCatalog
 }
 
 export function decodeAudioPacket(data: ArrayBuffer) {

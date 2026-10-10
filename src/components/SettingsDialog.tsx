@@ -5,7 +5,16 @@ import type { StudioController } from '../useStudio'
 
 type Props = Pick<
   StudioController,
-  'languagePreference' | 'changeLanguage' | 'setSettings' | 'operationPending'
+  | 'languagePreference'
+  | 'changeLanguage'
+  | 'setSettings'
+  | 'operationPending'
+  | 'audioDevices'
+  | 'audioDevicesPending'
+  | 'inputDevice'
+  | 'outputDevice'
+  | 'changeAudioDevices'
+  | 'recording'
 >
 
 export default function SettingsDialog({
@@ -13,6 +22,12 @@ export default function SettingsDialog({
   changeLanguage,
   setSettings,
   operationPending,
+  audioDevices,
+  audioDevicesPending,
+  inputDevice,
+  outputDevice,
+  changeAudioDevices,
+  recording,
 }: Props) {
   useEffect(() => {
     const escape = (event: KeyboardEvent) => {
@@ -59,6 +74,50 @@ export default function SettingsDialog({
         </label>
         <p className="hint muted">{t('settings.systemLanguage', { language: detected })}</p>
         <p className="hint muted">{t('settings.description')}</p>
+        {(['input', 'output'] as const).map((kind) => {
+          const devices = kind === 'input' ? audioDevices.inputs : audioDevices.outputs
+          const value = kind === 'input' ? inputDevice : outputDevice
+          const system = devices.find((device) => device.isDefault)
+          return (
+            <label className="settings-field" key={kind}>
+              <span>{t(kind === 'input' ? 'settings.inputDevice' : 'settings.outputDevice')}</span>
+              <select
+                value={value}
+                disabled={
+                  operationPending || audioDevicesPending || (kind === 'input' && recording)
+                }
+                onChange={(event) =>
+                  void changeAudioDevices(
+                    kind === 'input' ? event.target.value : inputDevice,
+                    kind === 'output' ? event.target.value : outputDevice,
+                  )
+                }
+              >
+                <option value="">
+                  {system
+                    ? t('settings.systemDefaultDevice', { name: system.label })
+                    : t('settings.systemDefault')}
+                </option>
+                {value && !devices.some((device) => device.id === value) && (
+                  <option value={value} disabled>
+                    {t('settings.deviceUnavailable')}
+                  </option>
+                )}
+                {devices.map((device, index) => (
+                  <option key={device.id} value={device.id}>
+                    {device.label ||
+                      t(kind === 'input' ? 'settings.inputFallback' : 'settings.outputFallback', {
+                        number: index + 1,
+                      })}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )
+        })}
+        <p className="hint muted">
+          {t(audioDevices.available ? 'settings.audioHint' : 'settings.audioUnavailable')}
+        </p>
       </section>
     </div>
   )

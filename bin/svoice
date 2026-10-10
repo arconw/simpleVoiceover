@@ -6,7 +6,7 @@ case "${1:-help}" in
     powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$(wslpath -w "$project_directory/scripts/windows-control.ps1")" -Action "$1"
     ;;
   help)
-    printf 'svoice <start|stop|status|logs|help>\n\nWindows desktop app: D:\\devw\\my\\tools\\simpleVoiceover\\simpleVoiceover.exe\nClosing its window stops the engine. Stop may request saving in the app.\nBuild in WSL: %s/bin/build-windows\n' "$project_directory"
+    printf 'svoice <start|stop|status|logs|help>\n\nWindows desktop app: latest versioned executable in build/.\nClosing its window stops the engine. Stop may request saving in the app.\nBuild in WSL: %s/bin/build-windows\n' "$project_directory"
     ;;
   *) printf 'Unknown command: %s\nUse: svoice help\n' "$1" >&2; exit 2 ;;
 esac

@@ -25,6 +25,7 @@ pub fn router(state: StudioState) -> Router {
         .route("/api/close", post(request_close))
         .route("/ws", get(upgrade))
         .route("/media/{id}", get(media_file))
+        .route("/preview/{id}", get(video_preview))
         .fallback(frontend)
         .with_state(state)
 }
@@ -101,6 +102,24 @@ async fn media_file(
     Path(asset_id): Path<String>,
     headers: HeaderMap,
 ) -> Response {
+    media_response(state, asset_id, headers, false).await
+}
+
+async fn video_preview(
+    State(state): State<StudioState>,
+    Path(asset_id): Path<String>,
+    headers: HeaderMap,
+) -> Response {
+    media_response(state, asset_id, headers, true).await
+}
+
+async fn media_response(
+    state: StudioState,
+    asset_id: String,
+    headers: HeaderMap,
+    preview: bool,
+) -> Response {
+    let preview = preview && !cfg!(target_os = "windows");
     let location = {
         let store = state.store.lock().unwrap();
         store
@@ -116,7 +135,20 @@ async fn media_file(
     };
     match location {
         Some(Ok(((path, base, length), name))) => {
-            serve_region(path, base, length, &name, &headers).await
+            let patches = if preview {
+                let source_path = path.clone();
+                let source_name = name.clone();
+                tokio::task::spawn_blocking(move || {
+                    crate::video_source::patches(&source_path, base, length, &source_name)
+                })
+                .await
+                .ok()
+                .and_then(Result::ok)
+                .unwrap_or_default()
+            } else {
+                Vec::new()
+            };
+            serve_region(path, base, length, &name, &headers, patches).await
         }
         _ => StatusCode::NOT_FOUND.into_response(),
     }
@@ -127,6 +159,7 @@ async fn serve_region(
     length: u64,
     name: &str,
     headers: &HeaderMap,
+    patches: Vec<crate::video_source::Patch>,
 ) -> Response {
     let range = headers.get(header::RANGE).and_then(|v| v.to_str().ok());
     let (start, end, status) = if let Some(range) = range {
@@ -166,21 +199,33 @@ async fn serve_region(
         return StatusCode::INTERNAL_SERVER_ERROR.into_response();
     }
     let remaining = if length == 0 { 0 } else { end - start + 1 };
-    let chunks = stream::try_unfold((file, remaining), |(mut file, remaining)| async move {
-        if remaining == 0 {
-            return Ok::<_, std::io::Error>(None);
-        }
-        let mut bytes = vec![0u8; remaining.min(256 * 1024) as usize];
-        let count = file.read(&mut bytes).await?;
-        if count == 0 {
-            return Err(std::io::Error::new(
-                std::io::ErrorKind::UnexpectedEof,
-                crate::i18n::message("error.incompleteMedia"),
-            ));
-        }
-        bytes.truncate(count);
-        Ok(Some((bytes, (file, remaining - count as u64))))
-    });
+    let chunks = stream::try_unfold(
+        (file, remaining, start, patches),
+        |(mut file, remaining, position, patches)| async move {
+            if remaining == 0 {
+                return Ok::<_, std::io::Error>(None);
+            }
+            let mut bytes = vec![0u8; remaining.min(256 * 1024) as usize];
+            let count = file.read(&mut bytes).await?;
+            if count == 0 {
+                return Err(std::io::Error::new(
+                    std::io::ErrorKind::UnexpectedEof,
+                    crate::i18n::message("error.incompleteMedia"),
+                ));
+            }
+            bytes.truncate(count);
+            crate::video_source::apply(&patches, position, &mut bytes);
+            Ok(Some((
+                bytes,
+                (
+                    file,
+                    remaining - count as u64,
+                    position + count as u64,
+                    patches,
+                ),
+            )))
+        },
+    );
     let mut response = Response::new(Body::from_stream(chunks));
     *response.status_mut() = status;
     let out = response.headers_mut();

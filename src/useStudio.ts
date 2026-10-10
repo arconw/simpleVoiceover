@@ -14,6 +14,8 @@ import { useDesktopLifecycle } from './hooks/useDesktopLifecycle'
 import { useStudioShortcuts } from './hooks/useStudioShortcuts'
 import { useNativeDrop } from './hooks/useNativeDrop'
 import { useOperationIndicator } from './hooks/useOperationIndicator'
+import { useTransientMessage } from './hooks/useTransientMessage'
+import { emptyAudioDevices } from './audio/devices'
 import {
   copySelection,
   selectionFromRegions,
@@ -31,23 +33,31 @@ export function useStudio() {
   const [clipboard, setClipboard] = useState<ClipClipboard | null>(null)
   const [tab, setTab] = useState('files')
   const [tool, setTool] = useState<'select' | 'split'>('select')
+  const [snapping, setSnapping] = useState(true)
+  const [trackToRemove, setTrackToRemove] = useState<Track | null>(null)
   const [busy, setBusy] = useState('')
   const visibleBusy = useOperationIndicator(busy)
   const [progress, setProgress] = useState<OperationProgress | null>(null)
-  const [notice, setNotice] = useState('')
-  const [error, setError] = useState('')
+  const [notice, setNotice] = useTransientMessage()
+  const [error, setError] = useTransientMessage()
   const [help, setHelp] = useState(false)
   const [settings, setSettings] = useState(false)
+  const [audioDevices, setAudioDeviceCatalog] = useState(emptyAudioDevices)
+  const [audioDevicesPending, setAudioDevicesPending] = useState(false)
   const languagePreference = useLanguagePreference()
   const engineRef = useRef<StudioClient | null>(null)
   const tracks = snapshot?.project.tracks ?? []
   const assets = useMemo<MediaAsset[]>(
     () =>
-      (snapshot?.project.assets ?? []).map((asset) => ({ ...asset, url: `/media/${asset.id}` })),
+      (snapshot?.project.assets ?? []).map((asset) => ({
+        ...asset,
+        url: `/${asset.kind === 'video' ? 'preview' : 'media'}/${asset.id}`,
+      })),
     [snapshot],
   )
   const duration = snapshot?.duration ?? 0
-  const selectedTrack = tracks.find((track) => track.id === selectedTrackId) ?? tracks[0]
+  const selectedTrack: Track | undefined =
+    tracks.find((track) => track.id === selectedTrackId) ?? tracks[0]
   const selectClip = (id: string | null) => {
     setSelectedClipId(id)
     setSelection(null)
@@ -76,6 +86,9 @@ export function useStudio() {
         validPreference(value.config.language) ? value.config.language : 'system',
       )
       setSnapshot(value)
+      void client
+        .setAudioDevices(value.config.inputDevice ?? '', value.config.outputDevice ?? '')
+        .catch(showError)
       setSelectedTrackId((previous) =>
         value.project.tracks.some((track) => track.id === previous)
           ? previous
@@ -86,6 +99,7 @@ export function useStudio() {
     }
     client.onError = showError
     client.onProgress = setProgress
+    client.onAudioDevices = setAudioDeviceCatalog
     void client.connect().catch(showError)
     return () => {
       client.close()
@@ -136,6 +150,18 @@ export function useStudio() {
     } catch (reason) {
       setLanguagePreference(previous)
       showError(reason)
+    }
+  }
+  const changeAudioDevices = async (inputDevice: string, outputDevice: string) => {
+    if (busy || audioDevicesPending) return
+    setAudioDevicesPending(true)
+    try {
+      await request('audio_preferences_patch', { inputDevice, outputDevice })
+      await engineRef.current?.setAudioDevices(inputDevice, outputDevice)
+    } catch (reason) {
+      showError(reason)
+    } finally {
+      setAudioDevicesPending(false)
     }
   }
   const savePreset = async (name: string, track: Track) => {
@@ -238,7 +264,7 @@ export function useStudio() {
     setNotice(t('selection.copied'))
   }
   const pasteClips = async () => {
-    if (!clipboard || clipboard.projectId !== snapshot?.project.id) return
+    if (!clipboard || !selectedTrack || clipboard.projectId !== snapshot?.project.id) return
     const result = await action(t('selection.paste'), 'clips_paste', {
       projectId: clipboard.projectId,
       clips: clipboard.clips,
@@ -302,6 +328,19 @@ export function useStudio() {
   const addTrack = () => {
     void action(t('action.addTrack'), 'track_add')
   }
+  const requestRemoveTrack = (track: Track) => {
+    if (!busy && !transport.recording && !track.locked) setTrackToRemove(track)
+  }
+  const confirmRemoveTrack = async () => {
+    if (!trackToRemove) return
+    const result = await action(t('action.removeTrack'), 'track_remove', {
+      trackId: trackToRemove.id,
+    })
+    if (result) {
+      selectClip(null)
+      setTrackToRemove(null)
+    }
+  }
   const getLevel = useCallback((id: string) => engineRef.current?.getLevel(id) ?? 0, [])
   useStudioShortcuts({
     play: transport.play,
@@ -314,7 +353,7 @@ export function useStudio() {
     pasteClips,
     seek: transport.seek,
     setTool,
-    blocked: !!lifecycle.confirmMode || help || settings,
+    blocked: !!lifecycle.confirmMode || !!trackToRemove || help || settings,
   })
   return {
     snapshot,
@@ -329,11 +368,17 @@ export function useStudio() {
     copyClips,
     pasteClips,
     moveRegions,
-    canPaste: !!clipboard && clipboard.projectId === snapshot?.project.id,
+    canPaste: !!selectedTrack && !!clipboard && clipboard.projectId === snapshot?.project.id,
     tab,
     setTab,
     tool,
     setTool,
+    snapping,
+    setSnapping,
+    trackToRemove,
+    requestRemoveTrack,
+    confirmRemoveTrack,
+    cancelRemoveTrack: () => setTrackToRemove(null),
     busy: visibleBusy,
     operationPending: !!busy,
     progress,
@@ -347,6 +392,11 @@ export function useStudio() {
     setSettings,
     languagePreference,
     changeLanguage,
+    audioDevices,
+    audioDevicesPending,
+    inputDevice: snapshot?.config.inputDevice ?? '',
+    outputDevice: snapshot?.config.outputDevice ?? '',
+    changeAudioDevices,
     savePreset,
     effectPresets: snapshot?.config.effectPresets ?? [],
     draggingFiles,

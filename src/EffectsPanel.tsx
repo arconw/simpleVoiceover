@@ -2,7 +2,7 @@ import { t } from './i18n'
 import { AudioLines, RotateCcw, Save, SlidersHorizontal } from 'lucide-react'
 import { useId, useState } from 'react'
 import { type EffectSettings, type Track } from './types'
-import { builtInPresets, type EffectPreset } from './effectPresets'
+import { builtInPresets, matchingPreset, type EffectPreset } from './effectPresets'
 import ParameterHelp from './components/ParameterHelp'
 import type { ParameterKind } from './parameterCurves'
 
@@ -65,13 +65,20 @@ export default function EffectsPanel({
   onSavePreset,
   operationPending,
 }: Props) {
-  const [presetId, setPresetId] = useState('natural')
+  const [preferredPreset, setPreferredPreset] = useState({ trackId: track.id, id: 'natural' })
   const [saving, setSaving] = useState(false)
   const [name, setName] = useState('')
-  const selected =
-    [...builtInPresets, ...presets].find((preset) => preset.id === presetId) ?? builtInPresets[0]
-  const applyPreset = () =>
-    onChange({ effects: { ...selected.effects }, fxBypass: selected.fxBypass })
+  const allPresets = [...builtInPresets, ...presets]
+  const selected = matchingPreset(
+    track,
+    allPresets,
+    preferredPreset.trackId === track.id ? preferredPreset.id : undefined,
+  )
+  const applyPreset = (id = selected?.id ?? preferredPreset.id) => {
+    const preset = allPresets.find((entry) => entry.id === id) ?? builtInPresets[0]
+    setPreferredPreset({ trackId: track.id, id: preset.id })
+    onChange({ effects: { ...preset.effects }, fxBypass: preset.fxBypass })
+  }
   const setEffect = (key: Exclude<keyof EffectSettings, 'normalize'>, value: number) =>
     onChange({ effects: { ...track.effects, [key]: value } })
   return (
@@ -92,9 +99,15 @@ export default function EffectsPanel({
         <div>
           <select
             aria-label={t('presets.select')}
-            value={presetId}
-            onChange={(event) => setPresetId(event.target.value)}
+            value={selected?.id ?? 'custom'}
+            disabled={operationPending}
+            onChange={(event) => applyPreset(event.target.value)}
           >
+            {!selected && (
+              <option value="custom" disabled>
+                {t('presets.custom')}
+              </option>
+            )}
             {builtInPresets.map((preset) => (
               <option key={preset.id} value={preset.id}>
                 {t(preset.name)}
@@ -111,7 +124,7 @@ export default function EffectsPanel({
         <button
           title={t('effects.reset')}
           aria-label={t('effects.reset')}
-          onClick={applyPreset}
+          onClick={() => applyPreset()}
           disabled={operationPending}
         >
           <RotateCcw size={15} />
@@ -316,7 +329,7 @@ export default function EffectsPanel({
           onChange={(v) => setEffect('truePeak', v)}
         />
       </div>
-      <button className="text-button" onClick={applyPreset} disabled={operationPending}>
+      <button className="text-button" onClick={() => applyPreset()} disabled={operationPending}>
         {t('effects.reset')}{' '}
       </button>
       <p className="hint muted">{t('effects.footer')} </p>

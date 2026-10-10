@@ -26,7 +26,7 @@ jobs:
 
       - uses: Swatinem/rust-cache@v2
         with:
-          workspaces: backend
+          workspaces: backend -> ../build/.cache
 
       - name: Install frontend dependencies
         run: npm ci --no-audit --no-fund
@@ -41,10 +41,10 @@ jobs:
         id: package
         shell: bash
         run: |
-          version="$(node -p 'JSON.parse(require("fs").readFileSync("package.json", "utf8")).version.replace(/\.0$/, "")')"
-          mkdir -p release
-          cp backend/target/release/simpleVoiceover.exe "release/simpleVoiceover-v${version}.exe"
-          echo "path=release/simpleVoiceover-v${version}.exe" >> "$GITHUB_OUTPUT"
+          version="$(node -p 'JSON.parse(require("fs").readFileSync("package.json", "utf8")).version')"
+          mkdir -p build
+          cp build/.cache/release/simpleVoiceover.exe "build/simpleVoiceover-v${version}.exe"
+          echo "path=build/simpleVoiceover-v${version}.exe" >> "$GITHUB_OUTPUT"
 
       - name: Record SHA-256
         shell: bash

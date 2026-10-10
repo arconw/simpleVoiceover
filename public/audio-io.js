@@ -7,14 +7,18 @@ class StudioOutput extends AudioWorkletProcessor {
     this.active = false
     this.finished = false
     this.ticks = 0
+    this.generation = 0
     this.port.onmessage = ({ data }) => {
       if (data.type === 'clear') {
+        this.generation = data.generation
         this.blocks = []
         this.cursor = 0
         this.position = data.position
         this.active = data.active
         this.finished = false
+        return
       }
+      if (data.generation !== this.generation) return
       if (data.type === 'block') this.blocks.push(data)
       if (data.type === 'finished') this.finished = true
     }
@@ -37,12 +41,20 @@ class StudioOutput extends AudioWorkletProcessor {
     }
     if (++this.ticks % 8 === 0) {
       if (this.active || this.blocks.length)
-        this.port.postMessage({ type: 'position', position: this.position })
+        this.port.postMessage({
+          type: 'position',
+          position: this.position,
+          generation: this.generation,
+        })
       if (this.active && !this.finished)
-        this.port.postMessage({ type: 'need', queued: this.blocks.length })
+        this.port.postMessage({
+          type: 'need',
+          queued: this.blocks.length,
+          generation: this.generation,
+        })
       if (this.finished && this.blocks.length === 0) {
         this.active = false
-        this.port.postMessage({ type: 'ended' })
+        this.port.postMessage({ type: 'ended', generation: this.generation })
         this.finished = false
       }
     }

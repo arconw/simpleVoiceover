@@ -54,6 +54,7 @@ pub fn execute(store: &mut Store, session: &mut AudioSession, value: &Value) -> 
                         "track_patch",
                         "snapshot",
                         "preferences_patch",
+                        "audio_preferences_patch",
                         "preset_save"
                     ]
                     .contains(&command),
@@ -71,6 +72,7 @@ pub fn execute(store: &mut Store, session: &mut AudioSession, value: &Value) -> 
                 "track_patch",
                 "snapshot",
                 "preferences_patch",
+                "audio_preferences_patch",
                 "preset_save",
             ]
             .contains(&command)

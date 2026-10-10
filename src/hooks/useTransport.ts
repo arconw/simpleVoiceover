@@ -3,6 +3,7 @@ import { useEffect, useRef, useState, type MutableRefObject } from 'react'
 import type { StudioClient } from '../services/StudioClient'
 import type { MediaAsset, Track } from '../types'
 import type { OperationProgress } from '../protocol'
+import { prepareVideoPosition, synchronizeVideo } from '../video/playback'
 
 interface Options {
   engineRef: MutableRefObject<StudioClient | null>
@@ -30,13 +31,15 @@ export function useTransport({
   tracks,
 }: Options) {
   const [position, setPosition] = useState(0)
+  const [seekRevision, setSeekRevision] = useState(0)
+  const seekSequence = useRef(0)
   const [playing, setPlaying] = useState(false)
+  const [seekPending, setSeekPending] = useState(false)
+  const seekRequest = useRef(0)
   const [recording, setRecording] = useState(false)
   const [recordStart, setRecordStart] = useState(0)
   const [monitor, setMonitorState] = useState(false)
   const [inputLevel, setInputLevel] = useState(0)
-  const [devices, setDevices] = useState<MediaDeviceInfo[]>([])
-  const [deviceId, setDeviceId] = useState('')
   const videoRef = useRef<HTMLVideoElement>(null)
   const engine = () => {
     if (!engineRef.current) throw new Error(t('error.audioConnecting'))
@@ -50,15 +53,50 @@ export function useTransport({
     client.onInput = setInputLevel
   }, [engineRef])
   const pause = async () => {
+    seekRequest.current++
+    setSeekPending(false)
     setPlaying(false)
     videoRef.current?.pause()
     if (engineRef.current) await engineRef.current.pause()
+  }
+  const preparePreview = async (time: number, request: number, revision: number) => {
+    const clip = tracks
+      .find((track) => track.kind === 'video')
+      ?.clips.find((clip) => time >= clip.start && time < clip.start + clip.duration)
+    const asset = assets.find((asset) => asset.id === clip?.assetId)
+    if (!clip || !asset) return
+    await new Promise<void>((resolve) => setTimeout(resolve, 0))
+    const video = videoRef.current
+    if (!video || !clip || video.getAttribute('src') !== asset?.url) return
+    await prepareVideoPosition(
+      video,
+      time - clip.start + clip.offset,
+      showError,
+      revision,
+      () => request === seekRequest.current && video === videoRef.current,
+    )
   }
   const seek = (time: number) => {
     if (recording || busy) return
     const next = Math.max(0, time)
     setPosition(next)
-    if (playing) void engine().play(next).catch(showError)
+    const sequence = ++seekSequence.current
+    setSeekRevision(sequence)
+    if (playing) {
+      const revision = ++seekRequest.current
+      setSeekPending(true)
+      videoRef.current?.pause()
+      void engine()
+        .pause()
+        .then(() => preparePreview(next, revision, sequence))
+        .then(() => {
+          if (revision === seekRequest.current) return engine().play(next)
+        })
+        .catch(showError)
+        .finally(() => {
+          if (revision === seekRequest.current) setSeekPending(false)
+        })
+    }
   }
   const play = async () => {
     if (busy || recording) return
@@ -73,7 +111,11 @@ export function useTransport({
       }
       setBusy(t('action.preparePlayback'))
       setProgress(null)
-      await engine().play(position >= duration ? 0 : position)
+      const next = position >= duration ? 0 : position
+      setPosition(next)
+      await engine().openAudio()
+      await preparePreview(next, seekRequest.current, seekSequence.current)
+      await engine().play(next)
       setPlaying(true)
     } catch (reason) {
       showError(reason)
@@ -107,12 +149,8 @@ export function useTransport({
     setBusy(t('action.connectMicrophone'))
     try {
       await pause()
-      await engine().prepareMicrophone(deviceId)
-      setDevices(
-        (await navigator.mediaDevices.enumerateDevices()).filter(
-          (device) => device.kind === 'audioinput',
-        ),
-      )
+      await engine().prepareMicrophone()
+      await preparePreview(position, seekRequest.current, seekSequence.current)
       await engine().startRecording(position, monitor)
       setRecordStart(position)
       setRecording(true)
@@ -139,25 +177,23 @@ export function useTransport({
     )
   const videoAsset = assets.find((asset) => asset.id === videoClip?.assetId)
   const videoFiles = assets.filter((asset) => asset.kind === 'video')
+  const previewPlaying = playing && !seekPending
   useEffect(() => {
     const video = videoRef.current
     if (!video || !videoClip) return
     const desired = previewPosition - videoClip.start + videoClip.offset
-    if (Math.abs(video.currentTime - desired) > 0.12) video.currentTime = desired
-    if (playing && video.paused) void video.play().catch(() => {})
-    if (!playing && !video.paused) video.pause()
-  }, [previewPosition, playing, videoClip])
+    synchronizeVideo(video, desired, previewPlaying, showError, seekRevision)
+  }, [previewPosition, previewPlaying, videoClip, showError, seekRevision])
   return {
     position,
+    seekRevision,
     playing,
+    previewPlaying,
     recording,
     recordStart,
     monitor,
     setMonitor,
     inputLevel,
-    devices,
-    deviceId,
-    setDeviceId,
     videoRef,
     previewPosition,
     videoClip,

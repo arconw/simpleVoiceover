@@ -3,6 +3,14 @@ import { invoke, isTauri } from '@tauri-apps/api/core'
 import { listen, type UnlistenFn } from '@tauri-apps/api/event'
 import { BrowserAudioIO } from '../audio/BrowserAudioIO'
 import {
+  browserAudioDevices,
+  defaultInputSignature,
+  effectiveAudioDevice,
+  emptyAudioDevices,
+  nativeBrowserInput,
+  type AudioDeviceCatalog,
+} from '../audio/devices'
+import {
   decodeAudioPacket,
   type Snapshot,
   type CommandPayloads,
@@ -21,17 +29,37 @@ export class StudioClient {
   private disposed = false
   private drained: (() => void) | null = null
   private transitions: Promise<unknown> = Promise.resolve()
+  private playbackRevision = 0
+  private deviceTransitions: Promise<unknown> = Promise.resolve()
+  private devices = emptyAudioDevices
+  private inputDevice = ''
+  private outputDevice = ''
+  private defaultInput = ''
+  private deviceTimer: ReturnType<typeof setInterval> | null = null
+  private refreshingDevices = false
+  private pendingReconnect = false
+  private preferenceTransition: Promise<void> = Promise.resolve()
+  private deviceChanged = () => {
+    void this.refreshAudioDevices().catch(this.onError)
+  }
   onSnapshot: (value: Snapshot) => void = () => {}
   onProgress: (value: OperationProgress) => void = () => {}
   onPosition: (value: number) => void = () => {}
   onEnded: () => void = () => {}
   onError: (reason: Error) => void = () => {}
   onInput: (level: number) => void = () => {}
+  onAudioDevices: (devices: AudioDeviceCatalog) => void = () => {}
   levels: Record<string, number> = {}
 
   constructor() {
-    this.audio.onPosition = (position) => this.onPosition(position)
+    this.audio.onDeviceLost = () => {
+      void this.refreshAudioDevices(true).catch(this.onError)
+    }
+    this.audio.onPosition = (position) => {
+      if (this.receiving) this.onPosition(position)
+    }
     this.audio.onEnded = () => {
+      if (!this.receiving) return
       this.receiving = false
       this.onEnded()
     }
@@ -72,7 +100,7 @@ export class StudioClient {
       }
       const message = JSON.parse(data)
       if (message.type === 'input-drained') this.drained?.()
-      if (message.type === 'meters') {
+      if (message.type === 'meters' && this.receiving) {
         this.levels = message.levels
         if (message.finished) {
           this.ended = true
@@ -93,6 +121,10 @@ export class StudioClient {
       this.socket!.onopen = () => resolve()
       this.socket!.onerror = () => reject(new Error(t('error.audioConnect')))
     })
+    await this.refreshAudioDevices()
+    if (this.disposed) return
+    globalThis.navigator?.mediaDevices?.addEventListener('devicechange', this.deviceChanged)
+    this.deviceTimer = setInterval(this.deviceChanged, 2000)
     await this.request('snapshot')
   }
   async request<K extends CommandName>(
@@ -139,26 +171,44 @@ export class StudioClient {
     this.transitions = result.catch(() => {})
     return result
   }
+  private currentPlayback(revision: number) {
+    return !this.disposed && revision === this.playbackRevision
+  }
+  openAudio() {
+    return this.audio.open()
+  }
   play(position: number) {
+    const revision = ++this.playbackRevision
+    this.receiving = false
+    this.audio.clear(position)
     return this.transition(async () => {
+      if (!this.currentPlayback(revision)) return
       await this.audio.open()
-      this.receiving = false
+      await this.synchronizeAudioDevices()
+      if (!this.currentPlayback(revision)) return
       await this.drain()
+      if (!this.currentPlayback(revision)) return
       await this.request('play', { position })
+      if (!this.currentPlayback(revision)) return
       this.start(position)
     })
   }
   pause() {
+    const revision = ++this.playbackRevision
+    this.receiving = false
+    this.audio.clear()
+    this.levels = {}
     return this.transition(async () => {
-      this.receiving = false
-      this.audio.clear()
-      this.levels = {}
+      if (!this.currentPlayback(revision)) return
       await this.drain()
+      if (!this.currentPlayback(revision)) return
       await this.request('pause')
     })
   }
-  async prepareMicrophone(deviceId: string) {
-    await this.audio.prepareMicrophone(deviceId)
+  async prepareMicrophone() {
+    await this.audio.prepareMicrophone(await this.microphoneDevice())
+    await this.synchronizeAudioDevices()
+    await this.refreshAudioDevices()
   }
   async startRecording(position: number, monitor: boolean) {
     await this.request('monitor', { enabled: monitor })
@@ -179,8 +229,76 @@ export class StudioClient {
   getLevel(id: string) {
     return this.levels[id] ?? 0
   }
+  private async synchronizeAudioDevices() {
+    if (this.devices.nativeRouting) await this.request('audio_devices_sync')
+  }
+  private async microphoneDevice() {
+    if (!this.devices.nativeRouting)
+      return effectiveAudioDevice(this.inputDevice, this.devices.inputs)
+    const browserDevices = (await globalThis.navigator?.mediaDevices?.enumerateDevices()) ?? []
+    return nativeBrowserInput(this.inputDevice, this.devices.inputs, browserDevices)
+  }
+  setAudioDevices(input: string, output: string) {
+    if (input === this.inputDevice && output === this.outputDevice) return this.preferenceTransition
+    this.inputDevice = input
+    this.outputDevice = output
+    this.preferenceTransition = this.updateAudioDevices(false).then(() =>
+      this.synchronizeAudioDevices(),
+    )
+    return this.preferenceTransition
+  }
+  private updateAudioDevices(reconnectInput: boolean) {
+    const update = this.deviceTransitions.then(async () => {
+      if (this.disposed) return
+      await this.audio.setDevices(
+        await this.microphoneDevice(),
+        this.devices.nativeRouting
+          ? ''
+          : effectiveAudioDevice(this.outputDevice, this.devices.outputs),
+        reconnectInput,
+      )
+      if (reconnectInput) await this.synchronizeAudioDevices()
+    })
+    this.deviceTransitions = update.catch(() => {})
+    return update
+  }
+  async refreshAudioDevices(reconnectInput = false) {
+    if (this.disposed) return
+    if (this.refreshingDevices) {
+      this.pendingReconnect ||= reconnectInput
+      return
+    }
+    this.refreshingDevices = true
+    try {
+      const result = await this.request('audio_devices')
+      let catalog = result.audioDevices ?? emptyAudioDevices
+      if (!catalog.nativeRouting) {
+        const devices = (await globalThis.navigator?.mediaDevices?.enumerateDevices()) ?? []
+        const signature = defaultInputSignature(devices)
+        reconnectInput ||=
+          !effectiveAudioDevice(this.inputDevice, browserAudioDevices(devices).inputs) &&
+          !!this.defaultInput &&
+          signature !== this.defaultInput
+        this.defaultInput = signature
+        catalog = browserAudioDevices(devices)
+      }
+      if (this.disposed) return
+      this.devices = catalog
+      this.onAudioDevices(catalog)
+      await this.updateAudioDevices(reconnectInput)
+    } finally {
+      this.refreshingDevices = false
+      if (this.pendingReconnect) {
+        this.pendingReconnect = false
+        await this.refreshAudioDevices(true)
+      }
+    }
+  }
   close() {
     this.disposed = true
+    this.playbackRevision++
+    if (this.deviceTimer) clearInterval(this.deviceTimer)
+    globalThis.navigator?.mediaDevices?.removeEventListener('devicechange', this.deviceChanged)
     this.unlisten.forEach((unsubscribe) => unsubscribe())
     if (this.socket) this.socket.onclose = null
     this.socket?.close()

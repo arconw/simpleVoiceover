@@ -15,11 +15,6 @@
 .tl-timeline button {
   font: inherit;
 }
-.tl-timeline button:focus-visible,
-.tl-timeline [tabindex]:focus-visible {
-  outline: 2px solid #d6ee9b;
-  outline-offset: -2px;
-}
 .tl-toolbar {
   align-items: center;
   background: #1b1e22;
@@ -287,12 +282,20 @@
   transform-origin: left;
   width: 100%;
 }
-.tl-track-level > span:last-child {
+.tl-track-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  margin-top: 5px;
+}
+.tl-track-footer > span {
   color: #7c8475;
   display: block;
   font-size: 6px;
   letter-spacing: 0.25px;
-  margin-top: 5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 .tl-lane {
@@ -568,7 +571,7 @@
   .tl-track-bottom {
     gap: 9px;
   }
-  .tl-track-level > span:last-child {
+  .tl-track-footer > span {
     font-size: 5px;
     letter-spacing: 0;
   }
@@ -594,4 +597,23 @@
     font-size: 5.7px;
     padding: 0 9px;
   }
+}
+
+.tl-track-delete {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  color: var(--muted);
+  flex-shrink: 0;
+}
+.tl-track-delete:not(:disabled):hover {
+  color: #ec9993;
+}
+.tl-track-row.is-silenced .tl-track-heading,
+.tl-track-row.is-silenced .tl-track-level,
+.tl-track-row.is-silenced .tl-empty-lane {
+  opacity: 0.5;
 }

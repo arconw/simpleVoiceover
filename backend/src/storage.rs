@@ -20,6 +20,10 @@ pub struct Config {
     pub language: String,
     #[serde(default)]
     pub effect_presets: Vec<EffectPreset>,
+    #[serde(default)]
+    pub input_device: String,
+    #[serde(default)]
+    pub output_device: String,
 }
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -60,6 +64,8 @@ impl Store {
                 dirty: true,
                 language: default_language(),
                 effect_presets: vec![],
+                input_device: String::new(),
+                output_device: String::new(),
             }
         };
         if let Some(path) = working {
@@ -89,10 +95,6 @@ impl Store {
             project
         };
         project.validate()?;
-        ensure!(
-            !project.tracks.is_empty(),
-            crate::i18n::message("error.noTracks")
-        );
         if !config.dirty {
             project.id = config.active_project.clone();
         }
@@ -120,6 +122,21 @@ impl Store {
         );
         let mut config = self.config.clone();
         config.language = language.into();
+        atomic_json(&self.config_directory.join("settings.json"), &config)
+            .context(crate::i18n::message("error.preferencesSave"))?;
+        self.config = config;
+        Ok(())
+    }
+    pub fn set_audio_devices(&mut self, input: &str, output: &str) -> Result<()> {
+        for device in [input, output] {
+            ensure!(
+                device.len() <= 4096 && !device.chars().any(char::is_control),
+                crate::i18n::message("error.audioDevice")
+            );
+        }
+        let mut config = self.config.clone();
+        config.input_device = input.into();
+        config.output_device = output.into();
         atomic_json(&self.config_directory.join("settings.json"), &config)
             .context(crate::i18n::message("error.preferencesSave"))?;
         self.config = config;

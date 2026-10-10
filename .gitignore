@@ -6,7 +6,13 @@ tests/fixtures/
 tests/artifacts/
 backend/target/
 backend/gen/
+/build/
 .build-tools/
+/simpleVoiceover-v*.exe
+/simpleVoiceover_*.AppImage
+/simpleVoiceover_*.deb
+/simpleVoiceover-*.rpm
+/simple-voiceover-*.rpm
 .ctx/
 !AGENTS.md
 !CLAUDE.md

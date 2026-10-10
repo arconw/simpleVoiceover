@@ -3,6 +3,7 @@ import type { Clip, Track, MediaAsset } from '../types'
 import type { TimelineProps } from './types'
 import type { TimelineViewport } from './useTimelineViewport'
 import { clamp } from './viewport'
+import { clipBoundaries, snapDelta } from './snapping'
 interface ClipDrag {
   pointerId: number
   originX: number
@@ -89,8 +90,34 @@ export function useClipDrag(
     if (!current || event.pointerId !== current.pointerId) return
     if (!current.moved && Math.abs(event.clientX - current.originX) < 3) return
     current.moved = true
-    const delta = (event.clientX - current.originX) / current.pixelsPerSecond
+    let delta = (event.clientX - current.originX) / current.pixelsPerSecond
     const original = current.clip
+    if (props.snapping) {
+      const minimum =
+        current.mode === 'right'
+          ? minimumClipDuration - original.duration
+          : current.mode === 'left'
+            ? -Math.min(original.start, original.offset)
+            : -original.start
+      const maximum =
+        current.mode === 'left'
+          ? original.duration - minimumClipDuration
+          : current.mode === 'right'
+            ? current.sourceDuration - original.offset - original.duration
+            : Infinity
+      const edges =
+        current.mode === 'move'
+          ? [original.start, original.start + original.duration]
+          : [current.mode === 'left' ? original.start : original.start + original.duration]
+      delta = snapDelta(
+        delta,
+        edges,
+        clipBoundaries(tracks, [current.trackId], [original.id]),
+        current.pixelsPerSecond,
+        minimum,
+        maximum,
+      )
+    }
     let next = { ...original }
     if (current.mode === 'move') next.start = Math.max(0, original.start + delta)
     if (current.mode === 'left') {

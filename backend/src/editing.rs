@@ -32,6 +32,21 @@ pub fn execute(store: &mut Store, value: &Value) -> Result<()> {
             project.tracks.push(Track::new("audio", "track.audio"));
             store.replace(project)?;
         }
+        "track_remove" => {
+            let track_id = text(value, "trackId")?;
+            let mut project = store.project.clone();
+            let index = project
+                .tracks
+                .iter()
+                .position(|track| track.id == track_id)
+                .context(crate::i18n::message("error.trackMissing"))?;
+            ensure!(
+                !project.tracks[index].locked,
+                crate::i18n::message("error.trackLocked")
+            );
+            project.tracks.remove(index);
+            store.replace(project)?;
+        }
         "track_patch" => {
             let track_id = text(value, "trackId")?;
             let mut project = store.project.clone();

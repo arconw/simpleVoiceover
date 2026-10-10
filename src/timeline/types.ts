@@ -26,7 +26,10 @@ export interface TimelineProps {
   recordStart: number
   tool: 'select' | 'split'
   onToolChange: (tool: 'select' | 'split') => void
+  snapping: boolean
+  onSnappingChange: (enabled: boolean) => void
   onAddTrack: () => void
+  onRemoveTrack: (track: Track) => void
   onRemoveClip: () => void
   getLevel: (id: string) => number
 }

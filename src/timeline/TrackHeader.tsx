@@ -1,5 +1,13 @@
 import { localizedName, t } from '../i18n'
-import { AudioLines, LockKeyhole, Mic, UnlockKeyhole, Video, WandSparkles } from 'lucide-react'
+import {
+  AudioLines,
+  LockKeyhole,
+  Mic,
+  Trash2,
+  UnlockKeyhole,
+  Video,
+  WandSparkles,
+} from 'lucide-react'
 import type { Track } from '../types'
 import TrackMeter from './TrackMeter'
 
@@ -7,6 +15,9 @@ interface Props {
   track: Track
   index: number
   recording: boolean
+  operationPending: boolean
+  onRemoveTrack: (track: Track) => void
+  soloHint?: string
   onSelectTrack: (id: string) => void
   onUpdateTrack: (id: string, patch: Partial<Track>) => void
   getLevel: (id: string) => number
@@ -15,6 +26,9 @@ export default function TrackHeader({
   track,
   index,
   recording,
+  operationPending,
+  onRemoveTrack,
+  soloHint,
   onSelectTrack,
   onUpdateTrack,
   getLevel,
@@ -33,7 +47,7 @@ export default function TrackHeader({
         <button
           className="tl-track-name"
           onClick={() => onSelectTrack(track.id)}
-          title={localizedName(track.name)}
+          title={soloHint ?? localizedName(track.name)}
         >
           {localizedName(track.name)}
         </button>
@@ -102,15 +116,29 @@ export default function TrackHeader({
         </div>
         <div className="tl-track-level">
           <TrackMeter id={track.id} getLevel={getLevel} />
-          <span>
-            {track.locked
-              ? t('track.locked')
-              : track.armed
-                ? t('track.microphone')
-                : track.kind === 'video'
-                  ? t('track.videoAudio')
-                  : t('track.audioTrack')}
-          </span>
+          <div className="tl-track-footer">
+            <span>
+              {track.locked
+                ? t('track.locked')
+                : track.armed
+                  ? t('track.microphone')
+                  : track.kind === 'video'
+                    ? t('track.videoAudio')
+                    : t('track.audioTrack')}
+            </span>
+            <button
+              className="tl-track-delete"
+              title={t('track.delete', { name: localizedName(track.name) })}
+              aria-label={t('track.delete', { name: localizedName(track.name) })}
+              disabled={recording || operationPending || track.locked}
+              onClick={(event) => {
+                event.stopPropagation()
+                onRemoveTrack(track)
+              }}
+            >
+              <Trash2 size={11} />
+            </button>
+          </div>
         </div>
       </div>
     </div>

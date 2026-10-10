@@ -6,10 +6,14 @@ import { formatTime } from '../types'
 import { useRef } from 'react'
 import type { StudioController } from '../useStudio'
 import OperationProgress from './OperationProgress'
+import { usePreviewFullscreen } from '../hooks/usePreviewFullscreen'
+import { synchronizeVideo } from '../video/playback'
 
 type Props = Pick<
   StudioController,
   | 'position'
+  | 'seekRevision'
+  | 'previewPlaying'
   | 'recording'
   | 'recordStart'
   | 'busy'
@@ -25,6 +29,8 @@ type Props = Pick<
 
 export default function VideoPreview({
   position,
+  seekRevision,
+  previewPlaying,
   recording,
   recordStart,
   busy,
@@ -38,18 +44,17 @@ export default function VideoPreview({
   videoFiles,
 }: Props) {
   const dragOrigin = useRef<{ x: number; y: number } | null>(null)
-  const stageRef = useRef<HTMLDivElement>(null)
+  const { fullscreen, toggleFullscreen } = usePreviewFullscreen(showError)
   return (
-    <section className="preview-panel">
+    <section className={`preview-panel ${fullscreen ? 'is-fullscreen' : ''}`}>
       <div
-        ref={stageRef}
         title={t('preview.fullscreen')}
         className={`video-stage ${videoAsset ? 'has-video' : ''}`}
         onMouseDown={(event) => {
           if (
             event.button !== 0 ||
             !isTauri() ||
-            document.fullscreenElement ||
+            fullscreen ||
             (event.target as Element).closest('button,input,select')
           )
             return
@@ -75,10 +80,7 @@ export default function VideoPreview({
         onDoubleClick={(event) => {
           if ((event.target as Element).closest('button,input,select')) return
           dragOrigin.current = null
-          const operation = document.fullscreenElement
-            ? document.exitFullscreen()
-            : stageRef.current?.requestFullscreen()
-          void operation?.catch(showError)
+          toggleFullscreen()
         }}
       >
         <OperationProgress busy={busy} progress={progress} />
@@ -89,10 +91,25 @@ export default function VideoPreview({
             src={videoAsset.url}
             muted
             playsInline
-            onLoadedData={() => {
-              if (videoRef.current)
-                videoRef.current.currentTime = previewPosition - videoClip.start + videoClip.offset
-            }}
+            onError={() => showError(new Error(t('error.videoCodec')))}
+            onLoadedData={(event) =>
+              synchronizeVideo(
+                event.currentTarget,
+                previewPosition - videoClip.start + videoClip.offset,
+                previewPlaying,
+                showError,
+                seekRevision,
+              )
+            }
+            onSeeked={(event) =>
+              synchronizeVideo(
+                event.currentTarget,
+                previewPosition - videoClip.start + videoClip.offset,
+                previewPlaying,
+                showError,
+                seekRevision,
+              )
+            }
           />
         ) : (
           <div className="preview-empty">

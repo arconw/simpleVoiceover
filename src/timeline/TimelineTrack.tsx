@@ -1,4 +1,5 @@
-import { t } from '../i18n'
+import { localizedName, t } from '../i18n'
+import { soloSources } from '../trackState'
 import type { CSSProperties } from 'react'
 import { LockKeyhole } from 'lucide-react'
 import { formatTime, type Track, type MediaAsset } from '../types'
@@ -14,6 +15,9 @@ type Props = Pick<
   | 'selectedTrackId'
   | 'selectedClipId'
   | 'recording'
+  | 'operationPending'
+  | 'tracks'
+  | 'onRemoveTrack'
   | 'onSelectTrack'
   | 'onSelectClip'
   | 'onUpdateTrack'
@@ -34,6 +38,9 @@ export default function TimelineTrack({
   selectedTrackId,
   selectedClipId,
   recording,
+  operationPending,
+  tracks,
+  onRemoveTrack,
   onSelectTrack,
   onSelectClip,
   onUpdateTrack,
@@ -51,16 +58,26 @@ export default function TimelineTrack({
 }: Props) {
   const { ticks, view, pixelsPerSecond, laneWidth } = viewport
   const { preview, drag, beginClipDrag, moveClip, finishClip } = clipDragging
+  const soloTracks = soloSources(track, tracks)
+  const soloHint = soloTracks.length
+    ? t('track.silencedBySolo', {
+        names: soloTracks.map((entry) => localizedName(entry.name)).join(', '),
+      })
+    : undefined
   return (
     <div
       key={track.id}
-      className={`tl-track-row ${track.id === selectedTrackId ? 'is-selected' : ''}`}
+      className={`tl-track-row ${track.id === selectedTrackId ? 'is-selected' : ''} ${soloHint ? 'is-silenced' : ''}`}
+      title={soloHint}
       style={{ '--tl-track-color': track.color } as CSSProperties}
     >
       <TrackHeader
         track={track}
         index={index}
         recording={recording}
+        operationPending={operationPending}
+        onRemoveTrack={onRemoveTrack}
+        soloHint={soloHint}
         onSelectTrack={onSelectTrack}
         onUpdateTrack={onUpdateTrack}
         getLevel={getLevel}
@@ -106,7 +123,7 @@ export default function TimelineTrack({
           return (
             <div
               key={clip.id}
-              className={`tl-clip ${selectedClipId === clip.id || selection?.regions.some((region) => region.clipId === clip.id) ? 'is-selected' : ''} ${track.mute ? 'is-muted' : ''} ${preview?.clip.id === clip.id || selecting.preview?.selection.regions.some((region) => region.clipId === clip.id) ? 'is-dragging' : ''}`}
+              className={`tl-clip ${selectedClipId === clip.id || selection?.regions.some((region) => region.clipId === clip.id) ? 'is-selected' : ''} ${track.mute || soloHint ? 'is-muted' : ''} ${preview?.clip.id === clip.id || selecting.preview?.selection.regions.some((region) => region.clipId === clip.id) ? 'is-dragging' : ''}`}
               style={{ left: visibleLeft, width: visibleWidth }}
               tabIndex={0}
               role="button"
@@ -115,7 +132,7 @@ export default function TimelineTrack({
                 value1: formatTime(clip.start, true),
                 value2: formatTime(clip.duration, true),
               })}
-              title={`${clip.name} · ${formatTime(clip.start, true)} — ${formatTime(clip.start + clip.duration, true)}`}
+              title={`${soloHint ? `${soloHint}\n` : ''}${clip.name} · ${formatTime(clip.start, true)} — ${formatTime(clip.start + clip.duration, true)}`}
               onPointerDown={(event) => {
                 if ((event.target as Element).closest('[data-trim]') || propsTool === 'split')
                   beginClipDrag(event, track, original)

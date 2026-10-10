@@ -6,7 +6,10 @@ use crate::{
 };
 use anyhow::{Context, Result, ensure};
 use serde_json::{Value, json};
-use std::{fs, path::PathBuf};
+use std::{
+    fs,
+    path::{Path, PathBuf},
+};
 
 pub fn snapshot(store: &Store) -> Value {
     json!({"project":store.project,"config":store.config,"duration":store.project.duration(),"canUndo":!store.history.is_empty(),"canRedo":!store.redo.is_empty()})
@@ -34,6 +37,12 @@ pub fn import_source(
 ) -> Result<()> {
     let size = fs::metadata(&source)?.len();
     ensure!(size <= MAX_UPLOAD, crate::i18n::message("error.fileLimit"));
+    ensure!(
+        position.is_finite() && position >= 0.,
+        crate::i18n::message("error.position")
+    );
+    let was_dirty = store.config.dirty;
+    let had_root = store.root().exists();
     store.begin_changes()?;
     let asset_id = id();
     let owned = store.source(&asset_id);
@@ -54,53 +63,109 @@ pub fn import_source(
         },
         &store.progress,
     );
-    let asset = match decoded {
-        Ok(asset) => asset,
+    let assets = match decoded {
+        Ok(assets) => assets,
         Err(error) => {
             let _ = fs::remove_file(&owned);
             let _ = fs::remove_file(store.pcm(&asset_id));
+            if !was_dirty {
+                store.config.dirty = false;
+                store.persist()?;
+                if !had_root {
+                    let _ = fs::remove_dir_all(store.root());
+                }
+            }
             return Err(error);
         }
     };
-    let mut project = store.project.clone();
-    let index = project
-        .tracks
-        .iter()
-        .position(|t| {
-            !t.locked
-                && if kind == "video" {
-                    t.kind == "video"
-                } else {
-                    target.as_ref().is_some_and(|id| id == &t.id) && t.kind != "video"
-                }
-        })
-        .unwrap_or_else(|| {
-            project.tracks.push(Track::new(
-                &kind,
+    let imported_ids: Vec<_> = assets.iter().map(|asset| asset.id.clone()).collect();
+    let result = (|| {
+        let mut assets = assets.into_iter();
+        let asset = assets
+            .next()
+            .context(crate::i18n::message("error.noDecodableAudio"))?;
+        let mut project = store.project.clone();
+        let index = project
+            .tracks
+            .iter()
+            .position(|t| {
+                !t.locked
+                    && if kind == "video" {
+                        t.kind == "video"
+                    } else {
+                        target.as_ref().is_some_and(|id| id == &t.id) && t.kind != "video"
+                    }
+            })
+            .unwrap_or_else(|| {
+                let track = Track::new(
+                    &kind,
+                    if kind == "video" {
+                        "track.video"
+                    } else {
+                        "track.audio"
+                    },
+                );
                 if kind == "video" {
-                    "track.video"
+                    project.tracks.insert(0, track);
+                    0
                 } else {
-                    "track.audio"
-                },
-            ));
-            project.tracks.len() - 1
+                    project.tracks.push(track);
+                    project.tracks.len() - 1
+                }
+            });
+        let track = &mut project.tracks[index];
+        if kind == "video" && asset.frames == 0 && track.name == "track.video" {
+            track.name = "track.videoPreview".into();
+        }
+        let start = track
+            .clips
+            .iter()
+            .map(|c| c.start + c.duration)
+            .fold(position, f64::max);
+        track.clips.push(Clip {
+            id: id(),
+            asset_id,
+            name,
+            start,
+            offset: 0.,
+            duration: asset.duration,
         });
-    let track = &mut project.tracks[index];
-    let start = track
-        .clips
-        .iter()
-        .map(|c| c.start + c.duration)
-        .fold(position, f64::max);
-    track.clips.push(Clip {
-        id: id(),
-        asset_id,
-        name,
-        start,
-        offset: 0.,
-        duration: asset.duration,
-    });
-    project.assets.push(asset);
-    store.replace(project)
+        project.assets.push(asset);
+        for (stream_index, audio) in assets.enumerate() {
+            let track_name = Path::new(&audio.name)
+                .file_stem()
+                .unwrap_or_default()
+                .to_string_lossy();
+            let mut track = Track::new("audio", &track_name);
+            track.mute = stream_index > 0;
+            track.clips.push(Clip {
+                id: id(),
+                asset_id: audio.id.clone(),
+                name: audio.name.clone(),
+                start,
+                offset: 0.,
+                duration: audio.duration,
+            });
+            project.tracks.insert(index + stream_index + 1, track);
+            project.assets.push(audio);
+        }
+        project.validate()?;
+        Ok::<_, anyhow::Error>(project)
+    })();
+    if result.is_err() {
+        for asset_id in imported_ids {
+            let _ = fs::remove_file(store.source(&asset_id));
+            let _ = fs::remove_file(store.pcm(&asset_id));
+        }
+        if !was_dirty {
+            store.config.dirty = false;
+            store.persist()?;
+            if !had_root {
+                let _ = fs::remove_dir_all(store.root());
+            }
+        }
+    }
+    store.replace(result?)
 }
 
 pub fn execute(store: &mut Store, value: &Value) -> Result<Value> {
@@ -110,6 +175,9 @@ pub fn execute(store: &mut Store, value: &Value) -> Result<Value> {
         "snapshot" => {}
         "preferences_patch" => {
             store.set_language(text(value, "preference")?)?;
+        }
+        "audio_preferences_patch" => {
+            store.set_audio_devices(text(value, "inputDevice")?, text(value, "outputDevice")?)?;
         }
         "preset_save" => {
             store.save_preset(
@@ -219,10 +287,28 @@ pub fn execute(store: &mut Store, value: &Value) -> Result<Value> {
                 ["wav", "mp3"].contains(&format),
                 crate::i18n::message("error.format")
             );
+            let name = if let Some(track_id) = value["trackId"].as_str() {
+                store
+                    .project
+                    .tracks
+                    .iter()
+                    .find(|track| track.id == track_id)
+                    .context(crate::i18n::message("error.trackMissing"))?
+                    .name
+                    .clone()
+            } else {
+                store
+                    .config
+                    .project_file
+                    .as_deref()
+                    .and_then(|path| path.file_stem())
+                    .map(|name| name.to_string_lossy().into_owned())
+                    .unwrap_or_else(|| store.project.name.clone())
+            };
             let destination = if let Some(path) = value["path"].as_str() {
                 Some(PathBuf::from(path))
             } else {
-                native_files::export(format, language)?
+                native_files::export(format, language, &name)?
             };
             let Some(destination) = destination else {
                 return Ok(json!({"saved":false}));

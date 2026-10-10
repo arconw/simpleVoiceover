@@ -1,4 +1,4 @@
-import { neutralEffects, voiceEffects, type EffectSettings } from './types'
+import { neutralEffects, voiceEffects, type EffectSettings, type Track } from './types'
 import type { TranslationKey } from './i18n'
 
 export interface EffectPreset {
@@ -6,6 +6,26 @@ export interface EffectPreset {
   name: string
   effects: EffectSettings
   fxBypass: boolean
+}
+
+export function matchesPreset(track: Track, preset: EffectPreset) {
+  return (
+    track.fxBypass === preset.fxBypass &&
+    (Object.keys(voiceEffects) as (keyof EffectSettings)[]).every((key) => {
+      const actual = track.effects[key] ?? neutralEffects[key]
+      const expected = preset.effects[key] ?? neutralEffects[key]
+      return typeof actual === 'number' && typeof expected === 'number'
+        ? Math.abs(actual - expected) < 0.00001
+        : actual === expected
+    })
+  )
+}
+
+export function matchingPreset(track: Track, presets: EffectPreset[], preferredId?: string) {
+  const preferred = presets.find((preset) => preset.id === preferredId)
+  return preferred && matchesPreset(track, preferred)
+    ? preferred
+    : presets.find((preset) => matchesPreset(track, preset))
 }
 
 export const builtInPresets: (EffectPreset & { name: TranslationKey })[] = [

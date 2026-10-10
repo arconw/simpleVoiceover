@@ -1,0 +1,12 @@
+ARG BASE_IMAGE
+FROM ${BASE_IMAGE}
+ARG AUDIO=pulseaudio
+ARG CODECS=full
+ARG WEBKIT_VERSION=
+LABEL dev.simplevoiceover.linux-testbench="true"
+COPY install.sh /tmp/install-testbench.sh
+RUN bash /tmp/install-testbench.sh "$AUDIO" "$CODECS" "$WEBKIT_VERSION" && if getent passwd 1000 >/dev/null; then userdel "$(getent passwd 1000 | cut -d: -f1)"; fi && useradd --create-home --uid 1000 --shell /bin/bash studio && mkdir -p /run/studio-lab /results && chown studio:studio /run/studio-lab /results
+COPY . /opt/linux-testbench
+ENV HOME=/home/studio XDG_RUNTIME_DIR=/run/studio-lab PULSE_SERVER=unix:/run/studio-lab/pulse/native LANG=C.UTF-8 PYTHONDONTWRITEBYTECODE=1
+WORKDIR /home/studio
+ENTRYPOINT ["python3", "-B", "/opt/linux-testbench/runtime.py"]
