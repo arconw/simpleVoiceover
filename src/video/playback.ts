@@ -20,7 +20,9 @@ export function unlockVideoPlayback(video: HTMLVideoElement | null) {
   unlockedVideos.add(video)
   const unlocked = () => {
     const state = states.get(video)
-    if (state) state.failed = false
+    if (!state?.failed) return
+    state.failed = false
+    state.requestedSeek = true
   }
   void video.play().then(unlocked, (reason: unknown) => {
     if (reason instanceof Error && reason.name === 'AbortError') unlocked()

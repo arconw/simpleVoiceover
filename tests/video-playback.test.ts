@@ -335,7 +335,7 @@ describe('video playback unlock', () => {
     }
   })
   it('lets a preview that failed before the unlock resume without toggling playback', async () => {
-    const { video, showError } = preview()
+    const { video, seek, showError } = preview()
     Object.assign(video, {
       play: vi.fn().mockRejectedValue(new DOMException('blocked', 'NotAllowedError')),
     })
@@ -348,7 +348,18 @@ describe('video playback unlock', () => {
     await new Promise((resolve) => setTimeout(resolve, 0))
     const resumed = vi.fn().mockResolvedValue(undefined)
     Object.assign(video, { play: resumed })
-    synchronizeVideo(video, 0, true, showError)
+    synchronizeVideo(video, 5, true, showError)
+    expect(seek).toHaveBeenCalledWith(5)
     expect(resumed).toHaveBeenCalledTimes(1)
+    expect(showError).toHaveBeenCalledTimes(1)
+  })
+  it('does not seek after an unlock when nothing had failed', async () => {
+    const { video, seek, showError } = preview(2)
+    synchronizeVideo(video, 2, false, showError)
+    Object.assign(video, { play: vi.fn().mockRejectedValue(new DOMException('', 'AbortError')) })
+    unlockVideoPlayback(video)
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    synchronizeVideo(video, 2, false, showError)
+    expect(seek).not.toHaveBeenCalled()
   })
 })
