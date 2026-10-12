@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { prepareVideoPosition, synchronizeVideo } from '../src/video/playback'
+import { prepareVideoPosition, synchronizeVideo, unlockVideoPlayback } from '../src/video/playback'
 
 function preview(time = 0) {
   let currentTime = time
@@ -282,5 +282,30 @@ describe('video preview synchronization', () => {
     reject(new Error('Interrupted'))
     await new Promise((resolve) => setTimeout(resolve, 0))
     expect(showError).not.toHaveBeenCalled()
+  })
+})
+
+describe('video playback unlock', () => {
+  it('starts and pauses a paused video once so later playback is permitted', () => {
+    const { video } = preview()
+    unlockVideoPlayback(video)
+    unlockVideoPlayback(video)
+    expect(video.play).toHaveBeenCalledTimes(1)
+    expect(video.pause).toHaveBeenCalledTimes(1)
+  })
+  it('leaves a playing video and a missing video untouched', () => {
+    const { video } = preview()
+    Object.assign(video, { paused: false })
+    unlockVideoPlayback(video)
+    unlockVideoPlayback(null)
+    expect(video.play).not.toHaveBeenCalled()
+    expect(video.pause).not.toHaveBeenCalled()
+  })
+  it('ignores a rejected unlock attempt', async () => {
+    const { video } = preview()
+    Object.assign(video, { play: vi.fn().mockRejectedValue(new DOMException('', 'AbortError')) })
+    unlockVideoPlayback(video)
+    await Promise.resolve()
+    expect(video.pause).toHaveBeenCalledTimes(1)
   })
 })

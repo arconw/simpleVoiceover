@@ -13,6 +13,14 @@ interface PlaybackState {
 }
 
 const states = new WeakMap<HTMLVideoElement, PlaybackState>()
+const unlockedVideos = new WeakSet<HTMLVideoElement>()
+
+export function unlockVideoPlayback(video: HTMLVideoElement | null) {
+  if (!video || !video.paused || unlockedVideos.has(video)) return
+  unlockedVideos.add(video)
+  void video.play().catch(() => {})
+  video.pause()
+}
 
 function previewTime(video: HTMLVideoElement, desired: number) {
   return Number.isFinite(video.duration) && video.duration > 0
