@@ -291,12 +291,12 @@ Normalization is a single constant gain computed from a bounded-memory histogram
 
 ### Tech stack
 
-| Layer     | Technology                                                                   |
-| --------- | ---------------------------------------------------------------------------- |
-| Interface | React 19, TypeScript, Vite, Golos Text                                       |
-| Desktop   | Tauri 2 with WebView2 on Windows and WebKitGTK 4.1 on Linux                  |
-| Engine    | Rust, Tokio, Axum, Symphonia, ebur128, shine-rs (MP3), zip (legacy projects) |
-| Tests     | Vitest for the interface, `cargo test` for the engine and storage            |
+| Layer     | Technology                                                                      |
+| --------- | ------------------------------------------------------------------------------- |
+| Interface | React 19, TypeScript, Vite, Golos Text                                          |
+| Desktop   | Tauri 2 with WebView2 on Windows, WebKitGTK 4.1 on Linux and WKWebView on macOS |
+| Engine    | Rust, Tokio, Axum, Symphonia, ebur128, shine-rs (MP3), zip (legacy projects)    |
+| Tests     | Vitest for the interface, `cargo test` for the engine and storage               |
 
 The test suite covers sample-accurate splitting, recording and Undo/Redo, append-only saves, interrupted saves, compaction, ZIP64 migration, seeks beyond 4 GiB, WAV and MP3 round trips, HTTP Range, origin restrictions, WebSocket and localization parity. A full 100 GB project has not been stress-tested.
 
@@ -354,6 +354,15 @@ bin/build-windows
 ```
 
 The [Windows build](.github/workflows/windows-build.yml) workflow builds the same executable from source on GitHub-hosted runners. Start it from the Actions tab and download the `simpleVoiceover-windows-x64` artifact.
+
+Build the macOS app on a Mac with the Xcode Command Line Tools installed:
+
+```bash
+xcode-select --install
+bin/build-macos
+```
+
+The script writes a versioned `.dmg` for the Mac's own architecture to `build/`. The app is signed ad hoc and not notarized. A build made on your own Mac opens normally. A copy downloaded from the internet is blocked on first launch; allow it under **System Settings → Privacy & Security → Open Anyway**. Recording asks for microphone access on first use.
 
 ## Linux compatibility test bench
 
