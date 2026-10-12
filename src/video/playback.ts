@@ -18,7 +18,14 @@ const unlockedVideos = new WeakSet<HTMLVideoElement>()
 export function unlockVideoPlayback(video: HTMLVideoElement | null) {
   if (!video || !video.paused || unlockedVideos.has(video)) return
   unlockedVideos.add(video)
-  void video.play().catch(() => {})
+  const unlocked = () => {
+    const state = states.get(video)
+    if (state) state.failed = false
+  }
+  void video.play().then(unlocked, (reason: unknown) => {
+    if (reason instanceof Error && reason.name === 'AbortError') unlocked()
+    else unlockedVideos.delete(video)
+  })
   video.pause()
 }
 
