@@ -5,7 +5,7 @@ use std::sync::{
     Arc,
     atomic::{AtomicBool, Ordering},
 };
-#[cfg(target_os = "linux")]
+#[cfg(any(target_os = "linux", target_os = "macos"))]
 use tauri::webview::{PermissionKind, PermissionResponse};
 use tauri::{Emitter, Manager, State, WebviewUrl, WebviewWindowBuilder, WindowEvent};
 
@@ -124,7 +124,7 @@ pub fn run(studio: StudioState, address: &str) -> Result<()> {
                     .permission("allow-studio-command")
                     .permission("allow-close-studio"),
             )?;
-            #[cfg(target_os = "linux")]
+            #[cfg(any(target_os = "linux", target_os = "macos"))]
             let permission_url = url.clone();
             let builder = WebviewWindowBuilder::new(app, "main", WebviewUrl::External(url.clone()))
                 .title(format!("simpleVoiceover v{}", env!("CARGO_PKG_VERSION")))
@@ -132,7 +132,7 @@ pub fn run(studio: StudioState, address: &str) -> Result<()> {
                 .inner_size(1440., 900.)
                 .min_inner_size(960., 700.)
                 .on_navigation(move |next| next.origin() == url.origin());
-            #[cfg(target_os = "linux")]
+            #[cfg(any(target_os = "linux", target_os = "macos"))]
             let builder = builder.on_permission_request(move |webview, kind| {
                 microphone_permission(webview.url().ok().as_ref(), &permission_url, kind)
             });
@@ -173,7 +173,7 @@ pub fn run(studio: StudioState, address: &str) -> Result<()> {
     Ok(())
 }
 
-#[cfg(target_os = "linux")]
+#[cfg(any(target_os = "linux", target_os = "macos"))]
 fn microphone_permission(
     current_url: Option<&tauri::Url>,
     studio_url: &tauri::Url,
@@ -188,7 +188,7 @@ fn microphone_permission(
     }
 }
 
-#[cfg(all(test, target_os = "linux"))]
+#[cfg(all(test, any(target_os = "linux", target_os = "macos")))]
 mod tests {
     use super::*;
 
