@@ -21,15 +21,12 @@ pub async fn run() -> Result<()> {
         }
     }
     let directory = config.unwrap_or_else(|| {
-        std::env::var_os("LOCALAPPDATA")
-            .map(PathBuf::from)
-            .unwrap_or_else(|| {
-                std::env::var_os("HOME")
-                    .map(PathBuf::from)
-                    .unwrap_or_else(std::env::temp_dir)
-                    .join(".local/share")
-            })
-            .join("simpleVoiceover")
+        default_config_directory(
+            std::env::var_os("HOME")
+                .map(PathBuf::from)
+                .unwrap_or_else(std::env::temp_dir),
+            std::env::var_os("LOCALAPPDATA").map(PathBuf::from),
+        )
     });
     std::fs::create_dir_all(&directory)?;
     let log = std::fs::OpenOptions::new()
@@ -70,4 +67,46 @@ pub async fn run() -> Result<()> {
     studio.shutdown.notify_waiters();
     let _ = tokio::time::timeout(std::time::Duration::from_secs(5), service).await;
     Ok(())
+}
+
+#[cfg(target_os = "macos")]
+fn default_config_directory(home: PathBuf, _local_app_data: Option<PathBuf>) -> PathBuf {
+    home.join(".simpleVoiceover")
+}
+
+#[cfg(not(target_os = "macos"))]
+fn default_config_directory(home: PathBuf, local_app_data: Option<PathBuf>) -> PathBuf {
+    local_app_data
+        .unwrap_or_else(|| home.join(".local/share"))
+        .join("simpleVoiceover")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn macos_keeps_settings_in_a_hidden_home_folder() {
+        assert_eq!(
+            default_config_directory(PathBuf::from("/Users/ada"), None),
+            PathBuf::from("/Users/ada/.simpleVoiceover")
+        );
+    }
+
+    #[cfg(not(target_os = "macos"))]
+    #[test]
+    fn other_platforms_prefer_local_app_data_then_xdg_share() {
+        assert_eq!(
+            default_config_directory(
+                PathBuf::from("/home/ada"),
+                Some(PathBuf::from("C:/Users/ada/AppData/Local"))
+            ),
+            PathBuf::from("C:/Users/ada/AppData/Local/simpleVoiceover")
+        );
+        assert_eq!(
+            default_config_directory(PathBuf::from("/home/ada"), None),
+            PathBuf::from("/home/ada/.local/share/simpleVoiceover")
+        );
+    }
 }
