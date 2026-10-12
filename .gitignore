@@ -32,3 +32,4 @@ token*
 *apikey*
 *api_key*
 *.keystore
+.DS_Store
