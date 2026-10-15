@@ -4,6 +4,8 @@ All notable changes to simpleVoiceover are recorded here. The format follows [Ke
 
 ## [Unreleased]
 
+## [1.3.1] - 2026-10-15
+
 ### Added
 
 - macOS support, contributed by Emrah Diril: an ad-hoc signed `.app` and `.dmg` built with `bin/build-macos`, microphone access limited to the studio page, and settings stored in `~/.simpleVoiceover`. There are no prebuilt macOS downloads yet.
@@ -42,6 +44,7 @@ All notable changes to simpleVoiceover are recorded here. The format follows [Ke
 
 - The first published release: a Windows executable and a Debian/Ubuntu package.
 
-[Unreleased]: https://github.com/arconw/simpleVoiceover/compare/v1.3.0...HEAD
+[Unreleased]: https://github.com/arconw/simpleVoiceover/compare/v1.3.1...HEAD
+[1.3.1]: https://github.com/arconw/simpleVoiceover/compare/v1.3.0...v1.3.1
 [1.3.0]: https://github.com/arconw/simpleVoiceover/compare/v1.2.1...v1.3.0
 [1.2.1]: https://github.com/arconw/simpleVoiceover/releases/tag/v1.2.1

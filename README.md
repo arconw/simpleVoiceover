@@ -4,7 +4,7 @@
 
 <br>
 
-[![Version](https://img.shields.io/badge/version-1.3.0-d8f593?style=flat-square&labelColor=222628)](https://github.com/arconw/simpleVoiceover/releases)
+[![Version](https://img.shields.io/badge/version-1.3.1-d8f593?style=flat-square&labelColor=222628)](https://github.com/arconw/simpleVoiceover/releases)
 [![Platforms](https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-d8f593?style=flat-square&labelColor=222628)](#download)
 [![CI](https://img.shields.io/github/actions/workflow/status/arconw/simpleVoiceover/ci.yml?branch=master&label=CI&style=flat-square&labelColor=222628)](https://github.com/arconw/simpleVoiceover/actions/workflows/ci.yml)
 [![Built with](https://img.shields.io/badge/built%20with-Tauri%20%C2%B7%20Rust%20%C2%B7%20React-d8f593?style=flat-square&labelColor=222628)](#under-the-hood)
@@ -35,26 +35,26 @@ It is a single native application. There is no FFmpeg to install, no console win
 
 ## Download
 
-Download **[version 1.3.0](https://github.com/arconw/simpleVoiceover/releases/tag/v1.3.0)** for Windows or Linux. All four packages are for x86_64.
+Download **[version 1.3.1](https://github.com/arconw/simpleVoiceover/releases/tag/v1.3.1)** for Windows or Linux. All four packages are for x86_64.
 
 <div align="center">
 
-[![Download for Windows](https://img.shields.io/badge/Download-Windows%20%C2%B7%20.exe-d8f593?style=for-the-badge&labelColor=222628&logo=data:image/svg%2bxml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0iI2Q4ZjU5MyI%2BPHBhdGggZD0iTTMgNS41bDcuNS0xdjdIM3pNMTEuNSA0LjNMMjEgM3Y4LjVoLTkuNXpNMyAxMi41aDcuNXY3TDMgMTguNXpNMTEuNSAxMi41SDIxVjIxbC05LjUtMS4zeiIvPjwvc3ZnPg%3D%3D)](https://github.com/arconw/simpleVoiceover/releases/download/v1.3.0/simpleVoiceover-v1.3.0.exe)
+[![Download for Windows](https://img.shields.io/badge/Download-Windows%20%C2%B7%20.exe-d8f593?style=for-the-badge&labelColor=222628&logo=data:image/svg%2bxml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0iI2Q4ZjU5MyI%2BPHBhdGggZD0iTTMgNS41bDcuNS0xdjdIM3pNMTEuNSA0LjNMMjEgM3Y4LjVoLTkuNXpNMyAxMi41aDcuNXY3TDMgMTguNXpNMTEuNSAxMi41SDIxVjIxbC05LjUtMS4zeiIvPjwvc3ZnPg%3D%3D)](https://github.com/arconw/simpleVoiceover/releases/download/v1.3.1/simpleVoiceover-v1.3.1.exe)
 &nbsp;
-[![Download for Linux](https://img.shields.io/badge/Download-Linux%20%C2%B7%20.AppImage-d8f593?style=for-the-badge&labelColor=222628&logo=linux&logoColor=d8f593)](https://github.com/arconw/simpleVoiceover/releases/download/v1.3.0/simpleVoiceover_1.3.0_amd64.AppImage)
+[![Download for Linux](https://img.shields.io/badge/Download-Linux%20%C2%B7%20.AppImage-d8f593?style=for-the-badge&labelColor=222628&logo=linux&logoColor=d8f593)](https://github.com/arconw/simpleVoiceover/releases/download/v1.3.1/simpleVoiceover_1.3.1_amd64.AppImage)
 
 </div>
 
 | Platform            | Package                                                                                                             |           Size | Requirements and recommendations                                                                                                            |
 | ------------------- | ------------------------------------------------------------------------------------------------------------------- | -------------: | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Windows**         | [EXE](https://github.com/arconw/simpleVoiceover/releases/download/v1.3.0/simpleVoiceover-v1.3.0.exe)                |  15.3&nbsp;MiB | Needs the WebView2 Runtime. Single executable.                                                                                              |
-| **Linux AppImage**  | [AppImage](https://github.com/arconw/simpleVoiceover/releases/download/v1.3.0/simpleVoiceover_1.3.0_amd64.AppImage) | 134.2&nbsp;MiB | **glibc 2.35+**, a graphical desktop and PulseAudio or PipeWire with its PulseAudio service. WebKitGTK and the media framework are bundled. |
-| **Debian / Ubuntu** | [DEB](https://github.com/arconw/simpleVoiceover/releases/download/v1.3.0/simpleVoiceover_1.3.0_amd64.deb)           |   6.0&nbsp;MiB | **Ubuntu 26.04 LTS recommended.** Requires glibc 2.35+ and system WebKitGTK 4.1 (2.40+); `apt` installs the other dependencies.             |
-| **Fedora**          | [RPM](https://github.com/arconw/simpleVoiceover/releases/download/v1.3.0/simpleVoiceover-1.3.0-1.x86_64.rpm)        |   6.0&nbsp;MiB | **Fedora 44 recommended.** Uses system WebKitGTK 4.1 and Fedora audio/video packages; `dnf` installs the dependencies.                      |
+| **Windows**         | [EXE](https://github.com/arconw/simpleVoiceover/releases/download/v1.3.1/simpleVoiceover-v1.3.1.exe)                |  15.3&nbsp;MiB | Needs the WebView2 Runtime. Single executable.                                                                                              |
+| **Linux AppImage**  | [AppImage](https://github.com/arconw/simpleVoiceover/releases/download/v1.3.1/simpleVoiceover_1.3.1_amd64.AppImage) | 134.2&nbsp;MiB | **glibc 2.35+**, a graphical desktop and PulseAudio or PipeWire with its PulseAudio service. WebKitGTK and the media framework are bundled. |
+| **Debian / Ubuntu** | [DEB](https://github.com/arconw/simpleVoiceover/releases/download/v1.3.1/simpleVoiceover_1.3.1_amd64.deb)           |   6.0&nbsp;MiB | **Ubuntu 26.04 LTS recommended.** Requires glibc 2.35+ and system WebKitGTK 4.1 (2.40+); `apt` installs the other dependencies.             |
+| **Fedora**          | [RPM](https://github.com/arconw/simpleVoiceover/releases/download/v1.3.1/simpleVoiceover-1.3.1-1.x86_64.rpm)        |   6.1&nbsp;MiB | **Fedora 44 recommended.** Uses system WebKitGTK 4.1 and Fedora audio/video packages; `dnf` installs the dependencies.                      |
 
-Recommended distributions are not hard installation restrictions. Older Debian/Ubuntu and Fedora releases may work when their libraries satisfy the package dependencies, but using them is at your own risk. The exact configurations exercised by the Linux test bench are listed in [verification](linux-testbench/VERIFICATION.md). Ubuntu 26.04 is the recommended current LTS, rather than a configuration claimed as tested by that bench. [Fedora 45 is currently Beta](https://discussion.fedoraproject.org/t/fedora-linux-45-beta-released/202136) and has not been verified.
+Recommended distributions are not hard installation restrictions. Older Debian/Ubuntu and Fedora releases may work when their libraries satisfy the package dependencies, but using them is at your own risk. The exact configurations exercised by the Linux test bench are listed in [verification](linux-testbench/VERIFICATION.md); that record covers the 1.3.0 artifacts. Ubuntu 26.04 is the recommended current LTS, rather than a configuration claimed as tested by that bench. [Fedora 45 is currently Beta](https://discussion.fedoraproject.org/t/fedora-linux-45-beta-released/202136) and has not been verified.
 
-The 1.3.0 Linux artifacts were rebuilt on **Ubuntu 22.04 / glibc 2.35**, removing the previous release's glibc 2.43 requirement. AppImage provides the most portable Linux package, but its glibc baseline still applies; it does not run on every Linux distribution. Check downloads against [SHA-256 checksums](https://github.com/arconw/simpleVoiceover/releases/download/v1.3.0/checksums.sha256).
+The Linux artifacts are built on **Ubuntu 22.04 / glibc 2.35**, as they have been since 1.3.0; v1.2.1 required glibc 2.43. AppImage provides the most portable Linux package, but its glibc baseline still applies; it does not run on every Linux distribution. Check downloads against [SHA-256 checksums](https://github.com/arconw/simpleVoiceover/releases/download/v1.3.1/checksums.sha256).
 
 > **macOS:** support is community-contributed and has no prebuilt download yet. Build it on a Mac as described in [Build from source](#build-from-source). The maintainer has not verified it.
 
@@ -63,22 +63,22 @@ The 1.3.0 Linux artifacts were rebuilt on **Ubuntu 22.04 / glibc 2.35**, removin
 Linux install:
 
 ```bash
-sudo apt install ./simpleVoiceover_1.3.0_amd64.deb
+sudo apt install ./simpleVoiceover_1.3.1_amd64.deb
 simpleVoiceover
 ```
 
 Fedora install:
 
 ```bash
-sudo dnf install ./simpleVoiceover-1.3.0-1.x86_64.rpm
+sudo dnf install ./simpleVoiceover-1.3.1-1.x86_64.rpm
 simpleVoiceover
 ```
 
 AppImage:
 
 ```bash
-chmod +x simpleVoiceover_1.3.0_amd64.AppImage
-./simpleVoiceover_1.3.0_amd64.AppImage
+chmod +x simpleVoiceover_1.3.1_amd64.AppImage
+./simpleVoiceover_1.3.1_amd64.AppImage
 ```
 
 If FUSE is unavailable, run the AppImage with `--appimage-extract-and-run`. All Linux formats need a working graphical session and an active PulseAudio-compatible audio server.
@@ -109,7 +109,7 @@ The second command installs the library if it is missing and upgrades it to the 
 
 **3. `Unable to locate package` or unmet dependencies**
 
-Check the requirements of the exact release and package you downloaded. Version 1.3.0 uses a glibc 2.35 baseline, so Ubuntu 24.04's glibc 2.39 satisfies it. Ubuntu 20.04 and Debian 11 do not satisfy the release baseline and lack the required WebKitGTK 4.1 packages for native installation. Use a supported distribution or a compatible package; changing dependency declarations cannot remove newer library symbols from an executable. Upgrade glibc through your distribution's normal system upgrades.
+Check the requirements of the exact release and package you downloaded. Version 1.3.1 uses a glibc 2.35 baseline, so Ubuntu 24.04's glibc 2.39 satisfies it. Ubuntu 20.04 and Debian 11 do not satisfy the release baseline and lack the required WebKitGTK 4.1 packages for native installation. Use a supported distribution or a compatible package; changing dependency declarations cannot remove newer library symbols from an executable. Upgrade glibc through your distribution's normal system upgrades.
 
 **Common problems**
 
@@ -132,13 +132,13 @@ The executable is not code-signed yet, so Microsoft Defender SmartScreen reports
 **To run it**, click **More info**, then **Run anyway**. Or unblock the file before the first launch: right-click it, choose **Properties**, tick **Unblock**, and press **OK**. In PowerShell:
 
 ```powershell
-Unblock-File .\simpleVoiceover-v1.3.0.exe
+Unblock-File .\simpleVoiceover-v1.3.1.exe
 ```
 
-**To verify the download**, compare its checksum with [checksums.sha256](https://github.com/arconw/simpleVoiceover/releases/download/v1.3.0/checksums.sha256):
+**To verify the download**, compare its checksum with [checksums.sha256](https://github.com/arconw/simpleVoiceover/releases/download/v1.3.1/checksums.sha256):
 
 ```powershell
-Get-FileHash .\simpleVoiceover-v1.3.0.exe -Algorithm SHA256
+Get-FileHash .\simpleVoiceover-v1.3.1.exe -Algorithm SHA256
 ```
 
 Download the file only from this repository's Releases page. On Windows 11 with **Smart App Control** turned on, unsigned apps can be blocked outright, and then the app cannot be started until the executable is signed.

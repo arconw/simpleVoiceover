@@ -2,7 +2,7 @@
 
 Observed on 2026-10-10 against the simpleVoiceover 1.3.0 release artifacts in `build/`. All 13 configurations completed the full extended suite against the Linux artifact hashes: **476 checks passed, 19 optional checks were skipped, and no required check failed**. Comparison with the preserved initial results reports **zero regressions and 23 improvements**.
 
-Generated JSON/JUnit reports, package inventories, loaded libraries, artifact/image hashes, screenshots, exported media, and clock/frame observations are available in `build/linux-testbench/`. Open `build/linux-testbench/index.html` for the report index; `comparison.json` contains the regression comparison. `build/checksums.sha256` identifies the four local release artifacts.
+Generated JSON/JUnit reports, package inventories, loaded libraries, artifact/image hashes, screenshots, exported media, and clock/frame observations are available in `build/linux-testbench/`. Open `build/linux-testbench/index.html` for the report index; `comparison.json` contains the regression comparison. The checksums of the 1.3.0 artifacts are published as `checksums.sha256` with the v1.3.0 GitHub Release.
 
 ## Observed configurations
 
