@@ -1,0 +1,54 @@
+name: Bug report
+description: Something does not work as expected
+labels:
+  - bug
+body:
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: Describe the problem and what you expected instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Import a video
+        2. Record a take
+        3. ...
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: The release you installed, for example 1.3.1.
+    validations:
+      required: true
+  - type: dropdown
+    id: package
+    attributes:
+      label: Package
+      options:
+        - Windows EXE
+        - Linux AppImage
+        - Debian / Ubuntu DEB
+        - Fedora RPM
+        - Built from source
+        - macOS build
+    validations:
+      required: true
+  - type: input
+    id: system
+    attributes:
+      label: Operating system
+      description: Distribution and version on Linux, Windows or macOS version otherwise. For Linux add the audio server (PulseAudio or PipeWire).
+    validations:
+      required: true
+  - type: textarea
+    id: details
+    attributes:
+      label: Media and extra details
+      description: The container and codecs of the imported video, error messages, or screenshots. Do not attach private recordings.

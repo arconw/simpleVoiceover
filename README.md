@@ -5,7 +5,8 @@
 <br>
 
 [![Version](https://img.shields.io/badge/version-1.3.0-d8f593?style=flat-square&labelColor=222628)](https://github.com/arconw/simpleVoiceover/releases)
-[![Platforms](https://img.shields.io/badge/platform-Windows%20%7C%20Linux-d8f593?style=flat-square&labelColor=222628)](#download)
+[![Platforms](https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-d8f593?style=flat-square&labelColor=222628)](#download)
+[![CI](https://img.shields.io/github/actions/workflow/status/arconw/simpleVoiceover/ci.yml?branch=master&label=CI&style=flat-square&labelColor=222628)](https://github.com/arconw/simpleVoiceover/actions/workflows/ci.yml)
 [![Built with](https://img.shields.io/badge/built%20with-Tauri%20%C2%B7%20Rust%20%C2%B7%20React-d8f593?style=flat-square&labelColor=222628)](#under-the-hood)
 [![Languages](https://img.shields.io/badge/languages-13-d8f593?style=flat-square&labelColor=222628)](#features)
 [![License](https://img.shields.io/badge/license-MIT-d8f593?style=flat-square&labelColor=222628)](LICENSE)
@@ -54,6 +55,8 @@ Download **[version 1.3.0](https://github.com/arconw/simpleVoiceover/releases/ta
 Recommended distributions are not hard installation restrictions. Older Debian/Ubuntu and Fedora releases may work when their libraries satisfy the package dependencies, but using them is at your own risk. The exact configurations exercised by the Linux test bench are listed in [verification](linux-testbench/VERIFICATION.md). Ubuntu 26.04 is the recommended current LTS, rather than a configuration claimed as tested by that bench. [Fedora 45 is currently Beta](https://discussion.fedoraproject.org/t/fedora-linux-45-beta-released/202136) and has not been verified.
 
 The 1.3.0 Linux artifacts were rebuilt on **Ubuntu 22.04 / glibc 2.35**, removing the previous release's glibc 2.43 requirement. AppImage provides the most portable Linux package, but its glibc baseline still applies; it does not run on every Linux distribution. Check downloads against [SHA-256 checksums](https://github.com/arconw/simpleVoiceover/releases/download/v1.3.0/checksums.sha256).
+
+> **macOS:** support is community-contributed and has no prebuilt download yet. Build it on a Mac as described in [Build from source](#build-from-source). The maintainer has not verified it.
 
 > **Windows:** the executable is not code-signed yet, so SmartScreen shows "Windows protected your PC" on first launch. See the Windows details below for how to run it.
 
@@ -332,6 +335,8 @@ npm test
 npm run build
 ```
 
+Run `npm run lint` for ESLint and Clippy. [CONTRIBUTING.md](CONTRIBUTING.md) lists the conventions, and [docs/RELEASING.md](docs/RELEASING.md) describes how releases are made.
+
 Build a Debian package on Ubuntu:
 
 ```bash
@@ -353,7 +358,7 @@ Cross-build the Windows executable from WSL (needs the `x86_64-pc-windows-msvc` 
 bin/build-windows
 ```
 
-The [Windows build](.github/workflows/windows-build.yml) workflow builds the same executable from source on GitHub-hosted runners. Start it from the Actions tab and download the `simpleVoiceover-windows-x64` artifact.
+The [Windows build](.github/workflows/windows-build.yml) workflow builds the same executable from source on GitHub-hosted runners. Start it from the Actions tab and download the `simpleVoiceover-windows-x64` artifact. Pushing a `v*` tag runs the [Release](.github/workflows/release.yml) workflow, which builds all four packages and prepares a draft GitHub Release.
 
 Build the macOS app on a Mac with the Xcode Command Line Tools installed:
 

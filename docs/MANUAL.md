@@ -2,7 +2,7 @@
 
 Back to the [project overview](../README.md).
 
-A voiceover studio for Windows and Linux, version 1.3.0, built with Tauri, React, and Rust. Windows uses WebView2; Linux uses WebKitGTK 4.1. The app window owns the engine lifecycle; no separate console, FFmpeg, or external media service is required.
+A voiceover studio for Windows, Linux, and macOS, version 1.3.0, built with Tauri, React, and Rust. Windows uses WebView2; Linux uses WebKitGTK 4.1; macOS uses WKWebView. The app window owns the engine lifecycle; no separate console, FFmpeg, or external media service is required.
 
 ## Run and build
 

@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security vulnerability
+    url: https://github.com/arconw/simpleVoiceover/security/advisories/new
+    about: Report security problems privately instead of opening a public issue.
+  - name: Read the manual
+    url: https://github.com/arconw/simpleVoiceover/blob/master/docs/MANUAL.md
+    about: Editing, effects, storage and troubleshooting are explained in the manual.
