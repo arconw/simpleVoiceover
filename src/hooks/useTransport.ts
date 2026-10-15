@@ -3,7 +3,7 @@ import { useEffect, useRef, useState, type MutableRefObject } from 'react'
 import type { StudioClient } from '../services/StudioClient'
 import type { MediaAsset, Track } from '../types'
 import type { OperationProgress } from '../protocol'
-import { prepareVideoPosition, synchronizeVideo } from '../video/playback'
+import { prepareVideoPosition, synchronizeVideo, unlockVideoPlayback } from '../video/playback'
 
 interface Options {
   engineRef: MutableRefObject<StudioClient | null>
@@ -45,6 +45,15 @@ export function useTransport({
     if (!engineRef.current) throw new Error(t('error.audioConnecting'))
     return engineRef.current
   }
+  useEffect(() => {
+    const unlock = () => unlockVideoPlayback(videoRef.current)
+    document.addEventListener('click', unlock, true)
+    document.addEventListener('keydown', unlock, true)
+    return () => {
+      document.removeEventListener('click', unlock, true)
+      document.removeEventListener('keydown', unlock, true)
+    }
+  }, [])
   useEffect(() => {
     const client = engineRef.current
     if (!client) return

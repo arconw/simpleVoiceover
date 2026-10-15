@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { prepareVideoPosition, synchronizeVideo } from '../src/video/playback'
+import { prepareVideoPosition, synchronizeVideo, unlockVideoPlayback } from '../src/video/playback'
 
 function preview(time = 0) {
   let currentTime = time
@@ -282,5 +282,84 @@ describe('video preview synchronization', () => {
     reject(new Error('Interrupted'))
     await new Promise((resolve) => setTimeout(resolve, 0))
     expect(showError).not.toHaveBeenCalled()
+  })
+})
+
+describe('video playback unlock', () => {
+  it('starts and pauses a paused video once so later playback is permitted', () => {
+    const { video } = preview()
+    unlockVideoPlayback(video)
+    unlockVideoPlayback(video)
+    expect(video.play).toHaveBeenCalledTimes(1)
+    expect(video.pause).toHaveBeenCalledTimes(1)
+  })
+  it('leaves a playing video and a missing video untouched', () => {
+    const { video } = preview()
+    Object.assign(video, { paused: false })
+    unlockVideoPlayback(video)
+    unlockVideoPlayback(null)
+    expect(video.play).not.toHaveBeenCalled()
+    expect(video.pause).not.toHaveBeenCalled()
+  })
+  it('treats the pause-aborted unlock as done and does not repeat it', async () => {
+    const { video } = preview()
+    Object.assign(video, { play: vi.fn().mockRejectedValue(new DOMException('', 'AbortError')) })
+    unlockVideoPlayback(video)
+    await vi.waitFor(() => expect(video.play).toHaveBeenCalledTimes(1))
+    await Promise.resolve()
+    unlockVideoPlayback(video)
+    expect(video.play).toHaveBeenCalledTimes(1)
+    expect(video.pause).toHaveBeenCalledTimes(1)
+  })
+  it('retries the unlock on the next gesture when playback was not allowed', async () => {
+    const { video } = preview()
+    const notAllowed = new DOMException('blocked', 'NotAllowedError')
+    Object.assign(video, { play: vi.fn().mockRejectedValue(notAllowed) })
+    unlockVideoPlayback(video)
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    unlockVideoPlayback(video)
+    expect(video.play).toHaveBeenCalledTimes(2)
+  })
+  it('keeps a failed preview stopped when the unlock is refused or the media cannot play', async () => {
+    for (const name of ['NotAllowedError', 'NotSupportedError']) {
+      const { video, showError } = preview()
+      const rejected = vi.fn().mockRejectedValue(new DOMException('rejected', name))
+      Object.assign(video, { play: rejected })
+      synchronizeVideo(video, 0, true, showError)
+      await vi.waitFor(() => expect(showError).toHaveBeenCalledTimes(1))
+      unlockVideoPlayback(video)
+      await new Promise((resolve) => setTimeout(resolve, 0))
+      synchronizeVideo(video, 0, true, showError)
+      expect(rejected).toHaveBeenCalledTimes(2)
+      expect(showError).toHaveBeenCalledTimes(1)
+    }
+  })
+  it('lets a preview that failed before the unlock resume without toggling playback', async () => {
+    const { video, seek, showError } = preview()
+    Object.assign(video, {
+      play: vi.fn().mockRejectedValue(new DOMException('blocked', 'NotAllowedError')),
+    })
+    synchronizeVideo(video, 0, true, showError)
+    await vi.waitFor(() => expect(showError).toHaveBeenCalledTimes(1))
+    synchronizeVideo(video, 0, true, showError)
+    expect(video.play).toHaveBeenCalledTimes(1)
+    Object.assign(video, { play: vi.fn().mockRejectedValue(new DOMException('', 'AbortError')) })
+    unlockVideoPlayback(video)
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    const resumed = vi.fn().mockResolvedValue(undefined)
+    Object.assign(video, { play: resumed })
+    synchronizeVideo(video, 5, true, showError)
+    expect(seek).toHaveBeenCalledWith(5)
+    expect(resumed).toHaveBeenCalledTimes(1)
+    expect(showError).toHaveBeenCalledTimes(1)
+  })
+  it('does not seek after an unlock when nothing had failed', async () => {
+    const { video, seek, showError } = preview(2)
+    synchronizeVideo(video, 2, false, showError)
+    Object.assign(video, { play: vi.fn().mockRejectedValue(new DOMException('', 'AbortError')) })
+    unlockVideoPlayback(video)
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    synchronizeVideo(video, 2, false, showError)
+    expect(seek).not.toHaveBeenCalled()
   })
 })

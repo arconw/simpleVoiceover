@@ -5,7 +5,7 @@ use std::sync::{
     Arc,
     atomic::{AtomicBool, Ordering},
 };
-#[cfg(target_os = "linux")]
+#[cfg(any(target_os = "linux", target_os = "macos"))]
 use tauri::webview::{PermissionKind, PermissionResponse};
 use tauri::{Emitter, Manager, State, WebviewUrl, WebviewWindowBuilder, WindowEvent};
 
@@ -124,15 +124,23 @@ pub fn run(studio: StudioState, address: &str) -> Result<()> {
                     .permission("allow-studio-command")
                     .permission("allow-close-studio"),
             )?;
-            #[cfg(target_os = "linux")]
+            #[cfg(any(target_os = "linux", target_os = "macos"))]
             let permission_url = url.clone();
+            let (width, height) = initial_window_size(app.primary_monitor()?.map(|monitor| {
+                let area = monitor
+                    .work_area()
+                    .size
+                    .to_logical::<f64>(monitor.scale_factor());
+                (area.width, area.height)
+            }));
             let builder = WebviewWindowBuilder::new(app, "main", WebviewUrl::External(url.clone()))
                 .title(format!("simpleVoiceover v{}", env!("CARGO_PKG_VERSION")))
                 .decorations(false)
-                .inner_size(1440., 900.)
+                .inner_size(width, height)
+                .center()
                 .min_inner_size(960., 700.)
                 .on_navigation(move |next| next.origin() == url.origin());
-            #[cfg(target_os = "linux")]
+            #[cfg(any(target_os = "linux", target_os = "macos"))]
             let builder = builder.on_permission_request(move |webview, kind| {
                 microphone_permission(webview.url().ok().as_ref(), &permission_url, kind)
             });
@@ -173,7 +181,19 @@ pub fn run(studio: StudioState, address: &str) -> Result<()> {
     Ok(())
 }
 
-#[cfg(target_os = "linux")]
+const PREFERRED_WINDOW_SIZE: (f64, f64) = (1440., 900.);
+
+fn initial_window_size(work_area: Option<(f64, f64)>) -> (f64, f64) {
+    let (width, height) = PREFERRED_WINDOW_SIZE;
+    work_area.map_or(
+        PREFERRED_WINDOW_SIZE,
+        |(available_width, available_height)| {
+            (width.min(available_width), height.min(available_height))
+        },
+    )
+}
+
+#[cfg(any(target_os = "linux", target_os = "macos"))]
 fn microphone_permission(
     current_url: Option<&tauri::Url>,
     studio_url: &tauri::Url,
@@ -188,7 +208,7 @@ fn microphone_permission(
     }
 }
 
-#[cfg(all(test, target_os = "linux"))]
+#[cfg(all(test, any(target_os = "linux", target_os = "macos")))]
 mod tests {
     use super::*;
 
@@ -240,5 +260,22 @@ mod tests {
                 PermissionResponse::Deny
             );
         }
+    }
+}
+
+#[cfg(test)]
+mod window_tests {
+    use super::*;
+
+    #[test]
+    fn window_opens_at_preferred_size_on_large_screens() {
+        assert_eq!(initial_window_size(Some((2560., 1415.))), (1440., 900.));
+        assert_eq!(initial_window_size(None), (1440., 900.));
+    }
+
+    #[test]
+    fn window_fits_inside_smaller_work_areas() {
+        assert_eq!(initial_window_size(Some((1280., 775.))), (1280., 775.));
+        assert_eq!(initial_window_size(Some((1512., 865.))), (1440., 865.));
     }
 }
