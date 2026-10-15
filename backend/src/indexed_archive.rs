@@ -171,7 +171,7 @@ pub fn save(
             .open(destination)?;
         file.try_lock()
             .context(crate::i18n::message("error.projectSavingElsewhere"))?;
-        let (_, current) = Archive::open(destination)?;
+        let (_, current) = read(file.try_clone()?, destination)?;
         ensure!(
             current.revision == source.revision,
             crate::i18n::message("error.projectChanged")
