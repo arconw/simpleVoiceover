@@ -164,11 +164,11 @@ pub fn run(studio: StudioState, address: &str) -> Result<()> {
             Ok(())
         })
         .on_window_event(move |window, event| {
-            if let WindowEvent::CloseRequested { api, .. } = event {
-                if !closed.allow_close.load(Ordering::SeqCst) {
-                    api.prevent_close();
-                    let _ = window.emit("studio-close-requested", ());
-                }
+            if let WindowEvent::CloseRequested { api, .. } = event
+                && !closed.allow_close.load(Ordering::SeqCst)
+            {
+                api.prevent_close();
+                let _ = window.emit("studio-close-requested", ());
             }
         })
         .build(tauri::generate_context!())?

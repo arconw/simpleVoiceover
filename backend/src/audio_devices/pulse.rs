@@ -95,15 +95,15 @@ impl Connection {
                     if matches!(result, ListResult::Error) {
                         callback_failed.set(true);
                     }
-                    if let ListResult::Item(stream) = result {
-                        if owns_stream(
+                    if let ListResult::Item(stream) = result
+                        && owns_stream(
                             stream.proplist.get_str(INSTANCE_PROPERTY).as_deref(),
                             stream.client,
                             &owned,
-                        ) && stream.sink != output_index
-                        {
-                            collected.borrow_mut().push(stream.index);
-                        }
+                        )
+                        && stream.sink != output_index
+                    {
+                        collected.borrow_mut().push(stream.index);
                     }
                 });
             self.wait(operation)?;
@@ -137,15 +137,15 @@ impl Connection {
                     if matches!(result, ListResult::Error) {
                         callback_failed.set(true);
                     }
-                    if let ListResult::Item(stream) = result {
-                        if owns_stream(
+                    if let ListResult::Item(stream) = result
+                        && owns_stream(
                             stream.proplist.get_str(INSTANCE_PROPERTY).as_deref(),
                             stream.client,
                             &owned,
-                        ) && stream.source != input_index
-                        {
-                            collected.borrow_mut().push(stream.index);
-                        }
+                        )
+                        && stream.source != input_index
+                    {
+                        collected.borrow_mut().push(stream.index);
                     }
                 });
             self.wait(operation)?;
@@ -197,15 +197,15 @@ impl Connection {
                 if matches!(result, ListResult::Error) {
                     callback_failed.set(true);
                 }
-                if let ListResult::Item(source) = result {
-                    if let Some(name) = source.name.as_deref() {
-                        collected.borrow_mut().push(Device {
-                            id: name.into(),
-                            label: source.description.as_deref().unwrap_or(name).into(),
-                            index: source.index,
-                            is_default: false,
-                        });
-                    }
+                if let ListResult::Item(source) = result
+                    && let Some(name) = source.name.as_deref()
+                {
+                    collected.borrow_mut().push(Device {
+                        id: name.into(),
+                        label: source.description.as_deref().unwrap_or(name).into(),
+                        index: source.index,
+                        is_default: false,
+                    });
                 }
             });
         self.wait(operation)?;
@@ -218,15 +218,15 @@ impl Connection {
             if matches!(result, ListResult::Error) {
                 callback_failed.set(true);
             }
-            if let ListResult::Item(sink) = result {
-                if let Some(name) = sink.name.as_deref() {
-                    collected.borrow_mut().push(Device {
-                        id: name.into(),
-                        label: sink.description.as_deref().unwrap_or(name).into(),
-                        index: sink.index,
-                        is_default: false,
-                    });
-                }
+            if let ListResult::Item(sink) = result
+                && let Some(name) = sink.name.as_deref()
+            {
+                collected.borrow_mut().push(Device {
+                    id: name.into(),
+                    label: sink.description.as_deref().unwrap_or(name).into(),
+                    index: sink.index,
+                    is_default: false,
+                });
             }
         });
         self.wait(operation)?;
@@ -262,10 +262,10 @@ impl Connection {
                 if matches!(result, ListResult::Error) {
                     callback_failed.set(true);
                 }
-                if let ListResult::Item(client) = result {
-                    if client.proplist.get_str(INSTANCE_PROPERTY).as_deref() == Some(instance()) {
-                        collected.borrow_mut().insert(client.index);
-                    }
+                if let ListResult::Item(client) = result
+                    && client.proplist.get_str(INSTANCE_PROPERTY).as_deref() == Some(instance())
+                {
+                    collected.borrow_mut().insert(client.index);
                 }
             });
         self.wait(operation)?;

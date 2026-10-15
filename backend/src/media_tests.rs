@@ -200,7 +200,9 @@ fn matroska_streams_keep_voice_track_order_independent_exports_and_project_histo
         mixer::render(&store, &export, Some(&track.id), "wav")?;
         let pcm = fs::read(store.pcm(&store.project.assets[index].id))?;
         assert!(
-            pcm.chunks_exact(8)
+            pcm.as_chunks::<8>()
+                .0
+                .iter()
                 .any(|frame| f32::from_le_bytes(frame[..4].try_into().unwrap()).abs() > 0.1)
         );
         if index == 3 {

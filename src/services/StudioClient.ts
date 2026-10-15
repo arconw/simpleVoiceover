@@ -136,7 +136,7 @@ export class StudioClient {
         request: { command, ...payload, language: currentLanguage() },
       })
     } catch (error) {
-      throw new Error(String(error))
+      throw new Error(String(error), { cause: error })
     }
   }
   private pull() {

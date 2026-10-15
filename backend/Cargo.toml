@@ -2,6 +2,7 @@
 name = "simple-voiceover"
 version = "1.3.0"
 edition = "2024"
+rust-version = "1.89"
 
 [features]
 desktop = ["dep:tauri", "dep:tauri-build", "dep:rfd", "dep:webkit2gtk", "dep:libpulse-binding", "dep:tempfile", "dep:cc", "dep:pkg-config"]

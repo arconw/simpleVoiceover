@@ -308,8 +308,10 @@ fn arm_is_exclusive_and_lock_only_protects_clip_editing() -> Result<()> {
     assert_eq!(f64::from_le_bytes(packet[8..16].try_into()?), 2.125);
     assert!(
         packet[16..]
-            .chunks_exact(4)
-            .any(|sample| f32::from_le_bytes(sample.try_into().unwrap()).abs() > 0.01)
+            .as_chunks::<4>()
+            .0
+            .iter()
+            .any(|sample| f32::from_le_bytes(*sample).abs() > 0.01)
     );
     let mut microphone = vec![1];
     for _ in 0..1024 {
@@ -331,8 +333,10 @@ fn arm_is_exclusive_and_lock_only_protects_clip_editing() -> Result<()> {
     assert_eq!(clip.duration, 1024. / SAMPLE_RATE as f64);
     let pcm = std::fs::read(store.pcm(&clip.asset_id))?;
     assert!(
-        pcm.chunks_exact(4)
-            .all(|sample| f32::from_le_bytes(sample.try_into().unwrap()) == 0.375)
+        pcm.as_chunks::<4>()
+            .0
+            .iter()
+            .all(|sample| f32::from_le_bytes(*sample) == 0.375)
     );
     let clip_id = clip.id.clone();
     assert!(

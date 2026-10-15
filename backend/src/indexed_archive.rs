@@ -64,8 +64,10 @@ pub fn read(mut file: File, path: &Path) -> Result<(Project, Archive)> {
     let mut header = [0; HEADER_SIZE as usize];
     file.read_exact(&mut header)?;
     let mut revisions: Vec<_> = header[8..]
-        .chunks_exact(SLOT_SIZE)
-        .filter_map(Revision::decode)
+        .as_chunks::<SLOT_SIZE>()
+        .0
+        .iter()
+        .filter_map(|slot| Revision::decode(slot))
         .collect();
     revisions.sort_by_key(|revision| std::cmp::Reverse(revision.generation));
     for revision in revisions {

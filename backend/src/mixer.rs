@@ -92,7 +92,7 @@ impl Mixer {
                 file.seek(SeekFrom::Start(*base + source * 8))?;
                 let mut bytes = vec![0u8; available * 8];
                 file.read_exact(&mut bytes)?;
-                for (index, bytes) in bytes.chunks_exact(8).enumerate() {
+                for (index, bytes) in bytes.as_chunks::<8>().0.iter().enumerate() {
                     let dest = &mut samples[(from - start) as usize + index];
                     dest[0] += f32::from_le_bytes(bytes[..4].try_into().unwrap());
                     dest[1] += f32::from_le_bytes(bytes[4..].try_into().unwrap());

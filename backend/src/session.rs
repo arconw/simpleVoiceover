@@ -96,8 +96,8 @@ impl AudioSession {
             if count == 0 {
                 break;
             }
-            for sample in bytes[..count].chunks_exact(4) {
-                let x = f32::from_le_bytes(sample.try_into().unwrap());
+            for sample in bytes[..count].as_chunks::<4>().0 {
+                let x = f32::from_le_bytes(*sample);
                 source.write_all(&((x.clamp(-1., 1.) * 32767.).round() as i16).to_le_bytes())?;
             }
         }
@@ -159,8 +159,8 @@ impl AudioSession {
                 .as_mut()
                 .context(crate::i18n::message("error.recordingNotStarted"))?;
             let mut peak: f32 = 0.;
-            for sample in bytes.chunks_exact(4) {
-                let value = finite(f32::from_le_bytes(sample.try_into().unwrap()));
+            for sample in bytes.as_chunks::<4>().0 {
+                let value = finite(f32::from_le_bytes(*sample));
                 peak = peak.max(value.abs());
                 recording.file.write_all(&value.to_le_bytes())?;
                 recording.file.write_all(&value.to_le_bytes())?;

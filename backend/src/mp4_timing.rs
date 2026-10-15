@@ -211,13 +211,13 @@ mod tests {
         media.extend(48000u32.to_be_bytes());
         let mut edits = vec![version, 0, 0, 0];
         edits.extend(2u32.to_be_bytes());
-        for (duration, start) in [(500, -1), (2000, 1024)] {
+        for (duration, start) in [(500, -1i32), (2000, 1024)] {
             if version == 1 {
                 edits.extend((duration as u64).to_be_bytes());
                 edits.extend((start as i64).to_be_bytes());
             } else {
                 edits.extend((duration as u32).to_be_bytes());
-                edits.extend((start as i32).to_be_bytes());
+                edits.extend(start.to_be_bytes());
             }
             edits.extend([0, 1, 0, 0]);
         }

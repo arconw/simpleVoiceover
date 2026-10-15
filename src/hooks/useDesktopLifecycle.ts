@@ -38,8 +38,10 @@ export function useDesktopLifecycle(options: Options) {
     if (state.dirty) setConfirmMode(mode)
     else void proceed(mode, false)
   }
+  const latestRequest = useRef(request)
+  latestRequest.current = request
   useEffect(() => {
-    const subscription = listen('studio-close-requested', () => request('close'))
+    const subscription = listen('studio-close-requested', () => latestRequest.current('close'))
     return () => {
       void subscription.then((unlisten) => unlisten())
     }

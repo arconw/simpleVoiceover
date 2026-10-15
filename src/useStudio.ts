@@ -69,7 +69,7 @@ export function useStudio() {
   const armedTrack = tracks.find((track) => track.armed)
   const showError = useCallback(
     (reason: unknown) => setError(reason instanceof Error ? reason.message : String(reason)),
-    [],
+    [setError],
   )
   const request = useCallback(
     <K extends CommandName>(command: K, payload: CommandPayloads[K] = {} as CommandPayloads[K]) => {

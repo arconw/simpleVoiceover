@@ -539,7 +539,9 @@ impl Peaks {
         if self.bins.len() == 65536 {
             self.bins = self
                 .bins
-                .chunks_exact(2)
+                .as_chunks::<2>()
+                .0
+                .iter()
                 .map(|p| [p[0][0].min(p[1][0]), p[0][1].max(p[1][1])])
                 .collect();
             self.width *= 2;
