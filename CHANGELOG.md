@@ -19,6 +19,10 @@ All notable changes to simpleVoiceover are recorded here. The format follows [Ke
 - Video preview playback recovers from a refused `play()` after the first click or key press and resumes at the current transport position.
 - The minimum supported Rust version is declared as 1.89.
 
+### Fixed
+
+- Saving a project into its own file a second time no longer fails on Windows with a locked-file error.
+
 ## [1.3.0] - 2026-10-10
 
 ### Added
