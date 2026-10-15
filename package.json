@@ -10,6 +10,9 @@
     "test": "npm run test:unit && npm run test:rust",
     "test:unit": "vitest run",
     "test:rust": "cargo test --manifest-path backend/Cargo.toml",
+    "lint": "npm run lint:ts && npm run lint:rust",
+    "lint:ts": "eslint src tests *.ts eslint.config.js",
+    "lint:rust": "cargo clippy --manifest-path backend/Cargo.toml --all-targets --features desktop -- -D warnings",
     "format": "prettier --write src public tests *.json *.ts index.html README.md",
     "format:check": "prettier --check src public tests *.json *.ts index.html README.md"
   },
@@ -21,12 +24,17 @@
     "react-dom": "^19.0.0"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@tauri-apps/cli": "2.12.1",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@vitejs/plugin-react": "^4.3.4",
+    "eslint": "^10.12.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "globals": "^17.13.0",
     "prettier": "^3.9.9",
     "typescript": "~5.7.2",
+    "typescript-eslint": "^8.71.2",
     "vite": "^6.1.0",
     "vitest": "^3.2.7"
   }
