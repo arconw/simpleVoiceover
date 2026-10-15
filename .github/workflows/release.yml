@@ -54,6 +54,7 @@ jobs:
       - name: Install build libraries
         run: |
           sudo apt-get update
+          sudo apt-get remove -y libunwind-14-dev
           sudo apt-get install -y --no-install-recommends build-essential pkg-config libwebkit2gtk-4.1-dev librsvg2-dev libpulse-dev libgstreamer1.0-dev patchelf file xz-utils squashfs-tools libfuse2 gstreamer1.0-plugins-good gstreamer1.0-libav
 
       - name: Build DEB, RPM and AppImage
