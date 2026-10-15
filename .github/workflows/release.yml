@@ -1,0 +1,100 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  version:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Check that every manifest matches the tag
+        run: |
+          npm_version="$(node -p 'JSON.parse(require("fs").readFileSync("package.json", "utf8")).version')"
+          tauri_version="$(node -p 'JSON.parse(require("fs").readFileSync("backend/tauri.conf.json", "utf8")).version')"
+          cargo_version="$(sed -n 's/^version = "\(.*\)"$/\1/p' backend/Cargo.toml | head -n 1)"
+          for version in "$npm_version" "$tauri_version" "$cargo_version"; do
+            if [ "v$version" != "$GITHUB_REF_NAME" ]; then
+              echo "Tag $GITHUB_REF_NAME does not match manifest version $version" >&2
+              exit 1
+            fi
+          done
+
+  windows:
+    needs: version
+    uses: ./.github/workflows/windows-build.yml
+    secrets: inherit
+
+  linux:
+    needs: version
+    runs-on: ubuntu-22.04
+    env:
+      APPIMAGE_EXTRACT_AND_RUN: 1
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: backend -> ../build/.cache
+
+      - name: Install build libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends build-essential pkg-config libwebkit2gtk-4.1-dev librsvg2-dev libpulse-dev libgstreamer1.0-dev patchelf file xz-utils squashfs-tools libfuse2 gstreamer1.0-plugins-good gstreamer1.0-libav
+
+      - name: Build DEB, RPM and AppImage
+        run: bin/build-linux all
+
+      - name: Upload Linux packages
+        uses: actions/upload-artifact@v7
+        with:
+          name: simpleVoiceover-linux-x64
+          path: |
+            build/*.deb
+            build/*.rpm
+            build/*.AppImage
+          if-no-files-found: error
+
+  draft-release:
+    needs:
+      - windows
+      - linux
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: simpleVoiceover-windows-x64
+          path: release
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: simpleVoiceover-linux-x64
+          path: release
+
+      - name: Write checksums
+        working-directory: release
+        run: sha256sum -- *.exe *.AppImage *.deb *.rpm | tee checksums.sha256
+
+      - name: Create the draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          awk -v heading="## [${GITHUB_REF_NAME#v}]" 'index($0, "## [") == 1 { printing = index($0, heading) == 1 } printing' CHANGELOG.md > notes.md
+          if [ -s notes.md ]; then notes=(--notes-file notes.md); else notes=(--generate-notes); fi
+          gh release create "$GITHUB_REF_NAME" release/* --draft --verify-tag --title "simpleVoiceover $GITHUB_REF_NAME" "${notes[@]}"
