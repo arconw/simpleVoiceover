@@ -4,6 +4,7 @@ on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -16,6 +17,7 @@ jobs:
       - uses: actions/checkout@v7
 
       - name: Check that every manifest matches the tag
+        if: ${{ github.ref_type == 'tag' }}
         run: |
           npm_version="$(node -p 'JSON.parse(require("fs").readFileSync("package.json", "utf8")).version')"
           tauri_version="$(node -p 'JSON.parse(require("fs").readFileSync("backend/tauri.conf.json", "utf8")).version')"
@@ -68,6 +70,7 @@ jobs:
           if-no-files-found: error
 
   draft-release:
+    if: ${{ github.ref_type == 'tag' }}
     needs:
       - windows
       - linux

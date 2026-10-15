@@ -13,6 +13,8 @@ This page is for maintainers. A release ships four x86_64 packages: a Windows EX
 
 Never move or reuse a release tag. Fix a bad release with a new version.
 
+To try the packaging without a tag, start the Release workflow manually from the Actions tab. It builds and uploads the packages as workflow artifacts and skips the draft release.
+
 ## Linux baseline
 
 The workflow builds on `ubuntu-22.04`, which matches the glibc 2.35 baseline. DEB and RPM keep dependency declarations compatible with that baseline. Record the build distribution, required library versions and verified runtime distributions for each release separately; the Linux test bench record in `linux-testbench/VERIFICATION.md` covers only the versions it names.
